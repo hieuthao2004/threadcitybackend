@@ -1,7 +1,8 @@
 const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
 
 const authorization = async (req, res, next) => {
-    const token = req.cookieds.access_token;
+    const token = req.cookies.access_token;
     if (!token) {
         return res.sendStatus(403);
     }
@@ -15,4 +16,4 @@ const authorization = async (req, res, next) => {
     }
 };
 
-exports.module = authorization;
+module.exports = authorization
