@@ -4,6 +4,8 @@ const DBService = require('../../services/db.service');
 const cookieParser = require("cookie-parser");
 const jwt = require('jsonwebtoken');
 const bcrypt = require("bcrypt");
+const dbService = require('../../services/db.service');
+const authorization = require('../../middleware/authorization');
 
 router.post("/auth", async (req, res) => {
     const { username, password } = req.body;
@@ -13,8 +15,8 @@ router.post("/auth", async (req, res) => {
             const isMatched = await bcrypt.compare(password, user.u_password);
             if (isMatched) {                
                 const token = jwt.sign({id: user.id, role: user.u_role}, "YOUR_SECRET_KEY");
+                await dbService.loginStatus(user.id);
                 return res.cookie("access_token", token, { httpOnly: true, secure: process.env.NODE_ENV === "production" }).status(200).json({ msg: "Logged in!" });
-              
             } else {
                 return res.status(401).json({ message: "Invalid credentials" });
             }
@@ -26,8 +28,13 @@ router.post("/auth", async (req, res) => {
     }
 });
 
-router.get("/logout", async (req, res) => {
-    return res.clearCookie("access_token").status(200).json({msg: "Logged out!"})
+router.get("/logout", authorization, async (req, res) => {
+    const token = req.cookies.access_token;
+    if (token) {     
+        const userId = jwt.verify(token, "YOUR_SECRET_KEY").id;   
+        await dbService.logoutStatus(userId);
+        return res.clearCookie("access_token").status(200).json({msg: "Logged out!"})
+    }
 })
 
 

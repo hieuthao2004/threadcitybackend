@@ -2,7 +2,8 @@ const { initializeApp } = require('firebase/app');
 const { 
     getFirestore, 
     collection, 
-    getDocs, 
+    getDocs,
+    getDoc, 
     addDoc, 
     query, 
     where, 
@@ -82,6 +83,39 @@ class DatabaseService {
         }
     }
 
+    async loginStatus(userId) {
+        try {
+            const userRef = doc(db, 'accounts', userId);
+            const docSnap = await getDoc(userRef);
+            if (docSnap.exists()) {
+                const status = docSnap.data().u_status;
+                if (!status) {
+                    await updateDoc(userRef, { u_status: true });
+                }
+            } else {
+                console.log("User not found");
+            }
+        } catch (error) {
+            console.error("Error updating login status:", error);
+        }
+
+    }    
+
+    async logoutStatus(userId) {
+        try {
+            const userRef = doc(db, 'accounts', userId);
+            const docSnap = await getDoc(userRef);
+            if (docSnap.exists()) {
+                await updateDoc(userRef, { u_status: false });
+            } else {
+                console.log("User not found");
+            }
+        } catch (error) {
+            console.error("Error updating logout status:", error);
+        }
+    }
+    
+
     async getAllUsers() {
         try {
             const usersRef = collection(db, 'accounts');
@@ -118,16 +152,6 @@ class DatabaseService {
             }))
         } catch (error) {
             console.log(error);
-        }
-    }
-
-    async updateUsersPostList(userId, postId) {
-        try {
-            const userRef = doc(db, "accounts", userId);
-            await updateDoc(userRef, {posts: arrayUnion(postId)})
-        } catch (error) {
-            console.error(error);
-            
         }
     }
 }

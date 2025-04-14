@@ -23,7 +23,7 @@ router.post("/register", async (req, res) => {
                 u_username: username,
                 u_password: hashedPassword,
                 u_createAt: new Date(),
-                u_status: "Active", //active, terminated
+                u_status: false,
                 u_role: 'user',
                 u_bio: "",
             }

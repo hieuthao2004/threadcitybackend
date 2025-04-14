@@ -21,7 +21,7 @@ router.post("/create_post", authorization, async (req, res) => {
     }
 });
 
-router.get("/posts", authorization, async (req, res) => {
+router.get("/posts", async (req, res) => {
     try {
         const posts = await DBService.getAllPosts();
         return res.status(200).json({ allPosts: posts })
