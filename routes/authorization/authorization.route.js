@@ -1,6 +1,6 @@
-const express = require('express');
+import express from 'express'
 const router = express.Router();
-const authorization = require('../../middleware/authorization');
+import authorization from '../../middleware/authorization.js';
 
 router.get("/protected", authorization , (req, res) => {
     return res.json({
@@ -12,4 +12,4 @@ router.get("/protected", authorization , (req, res) => {
     });
 });
 
-module.exports = router;
+export default router;

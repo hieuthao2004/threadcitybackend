@@ -1,5 +1,4 @@
-const jwt = require('jsonwebtoken');
-const cookieParser = require('cookie-parser');
+import jwt from "jsonwebtoken";
 
 const authorization = async (req, res, next) => {
     const token = req.cookies.access_token;
@@ -16,4 +15,4 @@ const authorization = async (req, res, next) => {
     }
 };
 
-module.exports = authorization
+export default authorization;

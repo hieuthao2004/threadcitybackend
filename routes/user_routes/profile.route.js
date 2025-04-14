@@ -10,3 +10,6 @@ router.get("/profile/@:username", authorization, async (req, res) => {
         
     };
 });
+
+
+export default router;

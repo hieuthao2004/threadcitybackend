@@ -1,21 +1,21 @@
-const express = require('express');
+import express from 'express';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
+import authorization from '../../middleware/authorization.js';
+import UsersModel from '../../models/UsersModel.js';
+
 const router = express.Router();
-const DBService = require('../../services/db.service');
-const cookieParser = require("cookie-parser");
-const jwt = require('jsonwebtoken');
-const bcrypt = require("bcrypt");
-const dbService = require('../../services/db.service');
-const authorization = require('../../middleware/authorization');
+const model = new UsersModel();
 
 router.post("/auth", async (req, res) => {
     const { username, password } = req.body;
     try {
-        const user = await DBService.findUserByUsername(username);
+        const user = await model.findUserByUsername(username)        
         if (user) {
             const isMatched = await bcrypt.compare(password, user.u_password);
             if (isMatched) {                
                 const token = jwt.sign({id: user.id, role: user.u_role}, "YOUR_SECRET_KEY");
-                await dbService.loginStatus(user.id);
+                await model.loginStatus(user.id);
                 return res.cookie("access_token", token, { httpOnly: true, secure: process.env.NODE_ENV === "production" }).status(200).json({ msg: "Logged in!" });
             } else {
                 return res.status(401).json({ message: "Invalid credentials" });
@@ -32,10 +32,9 @@ router.get("/logout", authorization, async (req, res) => {
     const token = req.cookies.access_token;
     if (token) {     
         const userId = jwt.verify(token, "YOUR_SECRET_KEY").id;   
-        await dbService.logoutStatus(userId);
+        await model.logoutStatus(userId);
         return res.clearCookie("access_token").status(200).json({msg: "Logged out!"})
     }
 })
 
-
-module.exports = router;
+export default router;

@@ -1,12 +1,12 @@
-const express = require('express');
-const cookieParser = require("cookie-parser");
+import express, { json } from 'express';
+import cookieParser from "cookie-parser";
 const app = express();
 const port = 3001;
 
-const registerRoute = require('./routes/registration.route');
-const authRoute = require('./routes/authentication/authentication.route');
-const authorizationRoute = require('./routes/authorization/authorization.route');
-const homepageRoute = require('./routes/homepage_routes/homepage.route');
+import registerRoute from './routes/registration.route.js';
+import authRoute from './routes/authentication/authentication.route.js';
+import authorizationRoute from './routes/authorization/authorization.route.js';
+import homepageRoute from './routes/homepage_routes/homepage.route.js';
 
 app.use(express.json());
 app.use(cookieParser());
