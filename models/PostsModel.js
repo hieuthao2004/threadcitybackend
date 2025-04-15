@@ -1,4 +1,4 @@
-import { addDoc, collection, getDoc, getDocs, query, where } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, query, updateDoc, where } from "firebase/firestore";
 import { db } from "../services/db.service.js";
 
 class PostsModel {
@@ -26,9 +26,9 @@ class PostsModel {
         }
     }
 
-    async findPostById(id) {
+    async findPostById(p_id) {
         try {
-            const postRef = collection(db, 'posts', id);
+            const postRef = doc(db, 'posts', p_id);
             const docSnap = await getDoc(postRef);
 
             if (docSnap.exists()) {
@@ -40,6 +40,69 @@ class PostsModel {
             console.error(error);
         }
     }
+
+    async updatePost(p_id, content) {
+        try {
+            const postRef = doc(db, 'posts', p_id);
+            const snapDoc = await getDoc(postRef);
+            if (snapDoc.exists()) {
+                return await updateDoc(postRef, {p_content: content, p_updateAt: new Date()});
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    async deletePost(p_id) {
+
+    }
+
+    async isLiked(u_id, p_id) {
+        try {            
+            const q = query(collection(db, 'likes'), where('user_id', '==', u_id), where('post', '==', p_id));
+            const docSnap = await getDocs(q);
+            if (docSnap.empty) {
+                return false;
+            } else {
+                return true;
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    async likePost(u_id, p_id) {
+        try {    
+            const isLiked = await this.isLiked(u_id, p_id);
+            if (!isLiked) {
+                await addDoc(collection(db, 'likes'), {
+                    user: u_id,
+                    post: p_id,
+                    likedAt: new Date()
+                });  
+            }                
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    async unLikedPost(u_id, p_id) {
+        try {
+            const q = query(
+                collection(db, 'likes'),
+                where('user', '==', u_id),
+                where('post', '==', p_id)
+            );
+            const docSnap = await getDocs(q);
+    
+            for (const doc of docSnap.docs) {
+                await deleteDoc(doc.ref); 
+            }
+        } catch (error) {
+            console.error("Error unliking the post:", error);
+        }
+    }
+    
 }
 
 export default PostsModel;

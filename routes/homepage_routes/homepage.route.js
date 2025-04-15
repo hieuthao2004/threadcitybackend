@@ -14,7 +14,7 @@ router.post("/create_post", authorization, async (req, res) => {
         p_content: content,
         p_create_at: new Date(),
         p_is_visible: true,
-        p_image_url: ""
+        p_image_url: "",
     };
     try {
         await model.createPost(postData);
@@ -33,10 +33,24 @@ router.get("/posts", async (req, res) => {
     }
 });
 
-router.get("/post/:p_id", async (req, res) => {
+router.get("/posts/:p_id", async (req, res) => {
     const { p_id } = req.params;
     const post = await model.findPostById(p_id);
-    return res.status(200).json({post: post})
+    return res.status(200).json({msg: "good", post: post})
+});
+
+router.post("/posts/liked/:p_id", authorization ,async (req, res) => {
+   const { p_id } = req.params;
+   const userID = req.userId;
+   await model.likePost(userID, p_id);
+   return res.status(200).json({msg: "Liked"});
+});
+
+router.delete("/posts/liked/:p_id", authorization, async (req, res) => {
+    const {p_id} = req.params;
+    const user = req.userId; 
+    await model.unLikedPost(user, p_id);
+    return res.status(200).json({msg: "Unliked"})
 });
 
 export default router;
