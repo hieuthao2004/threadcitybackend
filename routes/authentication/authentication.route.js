@@ -10,7 +10,7 @@ const model = new UsersModel();
 router.post("/auth", async (req, res) => {
     const { username, password } = req.body;
     try {
-        const user = await model.findUserByUsername(username)        
+        const user = await model.findUser(username);   
         if (user) {
             const isMatched = await bcrypt.compare(password, user.u_password);
             if (isMatched) {                

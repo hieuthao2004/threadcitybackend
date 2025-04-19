@@ -13,22 +13,7 @@ class UsersModel {
         }
     }
 
-    async findUserByEmail(email) {
-        try {
-            const userRef = collection(db, 'accounts');
-            const q = query(userRef, where("u_email", "==", email));
-            const snapshot = await getDocs(q);
-            return snapshot.empty ? null : {
-                id: snapshot.docs[0].id,
-                ...snapshot.docs[0].data()
-            };
-        } catch (error) {
-            console.error('Error finding user:', error);
-            throw error;
-        }
-    }
-
-    async findUserByUsername(username) {
+    async findUser(username) {
         try {
             const userRef = collection(db, 'accounts');
             const q = query(userRef, where("u_username", "==", username));
@@ -36,10 +21,48 @@ class UsersModel {
             return snapshot.empty ? null : {
                 id: snapshot.docs[0].id,
                 ...snapshot.docs[0].data()
-            };
+            }
         } catch (error) {
             console.error('Error finding user:', error);
             throw error;
+        }
+    }
+
+    async checkUserExistByEmail(email) {
+        try {
+            const userRef = collection(db, 'accounts');
+            const q = query(userRef, where("u_email", "==", email));
+            const snapshot = await getDocs(q);
+            return snapshot.empty ? false : true;
+        } catch (error) {
+            console.error('Error finding user:', error);
+            throw error;
+        }
+    }
+
+    async checkUserExistByUsername(username) {
+        try {
+            const userRef = collection(db, 'accounts');
+            const q = query(userRef, where("u_username", "==", username));
+            const snapshot = await getDocs(q);
+            return snapshot.empty ? false : true
+        } catch (error) {
+            console.error('Error finding user:', error);
+            throw error;
+        }
+    }
+
+    async getUsername(u_id) {
+        try {
+            const userRef = doc(db, 'accounts', u_id);
+            const docSnap = await getDoc(userRef);
+            if (docSnap.exists()) {
+                return docSnap.data().u_username;
+            } else {
+                return null
+            }
+        } catch (error) {
+            console.error(error);
         }
     }
 

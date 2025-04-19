@@ -13,9 +13,9 @@ router.get("/register", async (req, res) => {
 router.post("/register", async (req, res) => {
     const { username, password, email } = req.body;
     
-    if (await model.findUserByEmail(email)) {
+    if (await model.checkUserExistByEmail(email)) {
         return res.status(403).json({msg: "Existed email!"});
-    } else if (await model.findUserByUsername(username)) {
+    } else if (await model.checkUserExistByUsername(username)) {
         return res.status(403).json({msg: "Existed username!"});
     }
     const hashedPassword = await bcrypt.hash(password,  await bcrypt.genSalt(10));
