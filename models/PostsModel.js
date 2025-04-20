@@ -13,18 +13,29 @@ class PostsModel {
         }
     }
 
-    async getAllPosts() {
+    async getAllPosts(u_id) {
         try {
-            const postsRef = collection(db, 'posts');
-            const snapshot = getDocs(postsRef);
-            return (await snapshot).docs.map(doc => ({
-                doc: doc.id,
-                ...doc.data()
-            }))
+            const postRef = collection(db, 'posts');
+            const snapshot = await getDocs(postRef); 
+    
+            if (snapshot.empty) {
+                return [];
+            }
+    
+            const posts = snapshot.docs.map(doc => ({
+                p_id: doc.id,
+                ...doc.data(),
+            }));
+    
+            const hiddenPosts = await this.getHiddenPostsByUser(u_id);
+    
+            return posts.filter(post => !hiddenPosts.includes(post.p_id));
         } catch (error) {
-            console.log(error);
+            console.error("Error in getAllPosts:", error);
+            throw error;
         }
     }
+    
 
     async findPostById(p_id) {
         try {
@@ -62,6 +73,37 @@ class PostsModel {
             console.error(error);
         }
     }
+
+    async hidePost(content) {
+        try {
+            const postRef = collection(db, 'hidden_posts');
+            await addDoc(postRef, content);
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    async getHiddenPostsByUser(u_id) {
+        try {            
+            const hiddenPostsRef = collection(db, 'hidden_posts');
+            const q = query(hiddenPostsRef, where('user_id', '==', u_id));
+            const snapshot = await getDocs(q);
+    
+            if (snapshot.empty) {
+                console.log(`No hidden posts found for user: ${u_id}`);
+                return [];
+            }
+    
+            const postIDs = snapshot.docs.map(doc => doc.data().post);
+            console.log(postIDs);
+            
+            return postIDs;
+        } catch (error) {
+            console.error("Error fetching hidden posts:", error);
+            throw new Error("Could not fetch hidden posts");
+        }
+    }
+    
 
     async deletePost(p_id) {
 
@@ -146,6 +188,13 @@ class PostsModel {
         }
     }
 
+    async getHiddenCommentsByUser(u_id, p_id) {
+        const q = query(collection(db, 'hidden_comments'), where('user_id', '==', u_id), where('post', '==', p_id));
+        const snapshot = await getDocs(q);
+        
+        return snapshot.docs.map(doc => doc.data().comment_id);
+    }
+
     async updateComment(u_id, p_id, c_id, newContent) {
         try {
             const docRef = doc(db, "comments", c_id);
@@ -199,13 +248,6 @@ class PostsModel {
             console.error(error);
             throw error;
         }
-    }
-    
-
-    async getHiddenCommentsByUser(u_id, p_id) {
-        const q = query(collection(db, 'hidden_comments'), where('user_id', '==', u_id), where('post_id', '==', p_id));
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => doc.data().comment_id);
     }
     
 }
