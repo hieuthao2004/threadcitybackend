@@ -28,6 +28,43 @@ class UsersModel {
         }
     }
 
+    async getUserData(u_username) {
+        try {
+            const userRef = collection(db, 'accounts');
+            const q = query(userRef, where('u_username', '==', u_username));
+            const docSnap = await getDocs(q);
+            const allData = docSnap.docs[0].data();
+            const { u_password, ...safeData } = allData;
+            return {
+                doc: docSnap.docs[0].id,
+                ...safeData,
+            };
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    async updateUserData(u_id, content) {
+        try {
+            const userRef = doc(db, 'accounts', u_id);
+            await updateDoc(userRef, content);
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    async getUserComments(u_id) {
+        try {
+            
+        } catch (error) {
+            
+        }
+    }
+
+    async getUserPosts(u_id) {
+        
+    }
+
     async checkUserExistByEmail(email) {
         try {
             const userRef = collection(db, 'accounts');
