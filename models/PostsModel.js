@@ -127,7 +127,7 @@ class PostsModel {
 
     }
 
-    async getAllComments(p_id) {
+    async getAllComments(p_id, u_id) {
         try {
             const q = query(collection(db, 'comments'), where('post', '==', p_id));
             const snapshot = await getDocs(q);

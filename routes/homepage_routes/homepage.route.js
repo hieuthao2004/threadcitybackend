@@ -13,7 +13,7 @@ router.post("/create_post", authorization, async (req, res) => {
     const { content } = req.body;
     const postData = {
         u_id: userID,
-        p_creater: userModel.getUsername(userID),
+        p_creater: await userModel.getUsername(userID),
         p_content: content,
         p_create_at: new Date(),
         p_is_visible: true,
@@ -38,32 +38,71 @@ router.get("/posts", async (req, res) => {
 
 router.get("/posts/:p_id", async (req, res) => {
     const { p_id } = req.params;
-    const post = await model.findPostById(p_id);
-    return res.status(200).json({msg: "good", post: post})
+
+    try {
+        const post = await model.findPostById(p_id);
+
+        if (!post) {
+            return res.status(404).json({ msg: "Post not found" });
+        }
+
+        return res.status(200).json({ msg: "Good", post });
+    } catch (error) {
+        console.error("Error fetching post:", error);
+        return res.status(500).json({ msg: "Internal server error" });
+    }
 });
 
 router.put("/posts/:p_id", authorization, async (req, res) => {
     const user = req.userId;
-    const p_id = req.params;
+    const { p_id } = req.params;
     const { newContent } = req.body;
-    await model.updatePost(user, p_id, newContent.content);
-    return res.status(200).json({msg: "Updated post!"}) 
+
+    try {
+        await model.updatePost(user, p_id, newContent);
+        return res.status(200).json({ msg: "Updated post!" });
+    } catch (error) {
+        console.error("Update post error:", error);
+        return res.status(500).json({ msg: "Failed to update post" });
+    }
 });
 
 // CD like
-router.post("/posts/liked/:p_id", authorization ,async (req, res) => {
-   const { p_id } = req.params;
-   const userID = req.userId;
-   await model.likePost(userID, p_id);
-   return res.status(200).json({msg: "Liked"});
+router.post("/posts/liked/:p_id", authorization, async (req, res) => {
+    const { p_id } = req.params;
+    const userID = req.userId;
+
+    try {
+        const result = await model.likePost(userID, p_id);
+
+        return res.status(200).json({
+            msg: result ? "Post liked!" : "Already liked!",
+            liked: result
+        });
+    } catch (error) {
+        console.error("Error liking post:", error);
+        return res.status(500).json({ msg: "Failed to like post" });
+    }
 });
 
+
 router.delete("/posts/liked/:p_id", authorization, async (req, res) => {
-    const {p_id} = req.params;
-    const user = req.userId; 
-    await model.unLikedPost(user, p_id);
-    return res.status(200).json({msg: "Unliked"})
+    const { p_id } = req.params;
+    const user = req.userId;
+
+    try {
+        const result = await model.unLikedPost(user, p_id);
+        if (result) {
+            return res.status(200).json({ msg: "Unliked" });
+        } else {
+            return res.status(404).json({ msg: "Like not found"});
+        }
+    } catch (error) {
+        console.error("Error unliking post:", error);
+        return res.status(500).json({ msg: "Failed to unlike post" });
+    }
 });
+
 
 // CRUD comments
 router.get("/posts/:p_id/comments", authorization, async (req, res) => {
@@ -72,7 +111,12 @@ router.get("/posts/:p_id/comments", authorization, async (req, res) => {
 
     try {
         const comments = await model.getAllComments(p_id, user_id);
-        return res.status(200).json({ msg: "Good", allComments: comments });
+
+        if (comments) {
+            return res.status(200).json({ msg: "Good", allComments: comments });
+        } else {
+            return res.status(404).json({ msg: "No comments found" });
+        }
     } catch (error) {
         console.error(error);
         return res.status(500).json({ msg: "Error fetching comments" });
@@ -82,17 +126,24 @@ router.get("/posts/:p_id/comments", authorization, async (req, res) => {
 router.post("/posts/:p_id/comments", authorization, async (req, res) => {
     const { p_id } = req.params;
     const user_id = req.userId;
-    const cmt = req.body; 
-    const content = {
-        user: user_id,
-        c_creater: userModel.getUsername(user_id),
-        post: p_id,
-        content: cmt.comment,
-        c_createAt: new Date(),
+    const cmt = req.body;
+
+    try {
+        const content = {
+            user: user_id,
+            c_creater: await userModel.getUsername(user_id),
+            post: p_id,
+            content: cmt.comment,
+            c_createAt: new Date(),
+        };
+        await model.createComment(content);
+        return res.status(200).json({ msg: "Comment created!" });
+    } catch (error) {
+        console.error("Error creating comment:", error);
+        return res.status(500).json({ msg: "Failed to create comment" });
     }
-    await model.createComment(content);
-    return res.status(200).json({msg: "Comment created!"})
 });
+
 
 router.put("/posts/:p_id/comments/:c_id", authorization, async (req, res) => {
     const cmtID = req.params.c_id;
@@ -109,14 +160,14 @@ router.put("/posts/:p_id/comments/:c_id", authorization, async (req, res) => {
     }
 });
 
-router.post("/posts/:p_id/comments/:c_id/hide", async (req, res) => {
+router.post("/posts/:p_id/comments/:c_id/hide", authorization, async (req, res) => {
     const cmtID = req.params.c_id;
     const postID = req.params.p_id;
     const userID = req.userId;
 
     const content = {
         user_id: userID,
-        username: userModel.getUsername(userID),
+        username: await userModel.getUsername(userID),
         post: postID,
         comment_id: cmtID,
         hiddenAt: new Date()
