@@ -227,7 +227,7 @@ router.delete("/posts/:p_id/comments/:c_id", authorization, async (req, res) => 
 });
 
 // CD save post
-router.post("/posts/:p_id/saved", authorization, async (req, res) => {
+router.post("/profile/posts/:p_id/saved", authorization, async (req, res) => {
     try {
         const userID = req.userId;
         const username = await userModel.getUsername(userID);
@@ -252,7 +252,5 @@ router.post("/posts/:p_id/saved", authorization, async (req, res) => {
         return res.status(500).json({ msg: "Failed to save post" });
     }
 });
-
-
 
 export default router;
