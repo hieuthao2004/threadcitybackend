@@ -13,18 +13,29 @@ class PostsModel {
         }
     }
 
-    async getAllPosts() {
+    async getAllPosts(u_id) {
         try {
-            const postsRef = collection(db, 'posts');
-            const snapshot = getDocs(postsRef);
-            return (await snapshot).docs.map(doc => ({
-                doc: doc.id,
-                ...doc.data()
-            }))
+            const postRef = collection(db, 'posts');
+            const snapshot = await getDocs(postRef); 
+    
+            if (snapshot.empty) {
+                return [];
+            }
+    
+            const posts = snapshot.docs.map(doc => ({
+                p_id: doc.id,
+                ...doc.data(),
+            }));
+    
+            const hiddenPosts = await this.getHiddenPostsByUser(u_id);
+    
+            return posts.filter(post => post.p_is_visible !== false && !hiddenPosts.includes(post.p_id));
         } catch (error) {
-            console.log(error);
+            console.error("Error in getAllPosts:", error);
+            throw error;
         }
     }
+    
 
     async findPostById(p_id) {
         try {
@@ -63,13 +74,54 @@ class PostsModel {
         }
     }
 
-    async deletePost(p_id) {
+    async hidePost(content) {
+        try {
+            const postRef = collection(db, 'hidden_posts');
+            await addDoc(postRef, content);
+        } catch (error) {
+            console.error(error);
+        }
+    }
 
+    async getHiddenPostsByUser(u_id) {
+        try {            
+            const hiddenPostsRef = collection(db, 'hidden_posts');
+            const q = query(hiddenPostsRef, where('user_id', '==', u_id));
+            const snapshot = await getDocs(q);
+    
+            if (snapshot.empty) {
+                return [];
+            }
+    
+            const postIDs = snapshot.docs.map(doc => doc.data().post);
+            console.log(postIDs);
+            
+            return postIDs;
+        } catch (error) {
+            console.error("Error fetching hidden posts:", error);
+            throw new Error("Could not fetch hidden posts");
+        }
+    }
+    
+
+    async softDeletePost(p_id, u_id) {
+        try {
+            const postRef = doc(db, 'posts', p_id);
+            const docSnap = getDoc(postRef);
+            const postInfo = (await docSnap).data();
+            if (postInfo.u_id === u_id) {
+                await updateDoc(postRef, {p_is_visible: false});
+            } else {
+                throw new Error("Unauthorized to delete the post")
+            }
+        } catch (error) {
+            console.error("Error when removing post" + error);
+        }
     }
 
     async isLiked(u_id, p_id) {
         try {            
-            const q = query(collection(db, 'likes'), where('user_id', '==', u_id), where('post', '==', p_id));
+            const q = query(collection(db, 'likes'), where('user_id', '==', u_id), where('post_id', '==', p_id));
             const docSnap = await getDocs(q);
             if (docSnap.empty) {
                 return false;
@@ -80,17 +132,21 @@ class PostsModel {
             console.error(error);
         }
     }
+    
 
     async likePost(u_id, p_id) {
         try {    
             const isLiked = await this.isLiked(u_id, p_id);
             if (!isLiked) {
                 await addDoc(collection(db, 'likes'), {
-                    user: u_id,
-                    post: p_id,
+                    user_id: u_id,
+                    post_id: p_id,
                     likedAt: new Date()
                 });  
-            }                
+                return true;
+            } else {
+                return false;
+            } 
         } catch (error) {
             console.error(error);
         }
@@ -100,8 +156,8 @@ class PostsModel {
         try {
             const q = query(
                 collection(db, 'likes'),
-                where('user', '==', u_id),
-                where('post', '==', p_id)
+                where('user_id', '==', u_id),
+                where('post_id', '==', p_id)
             );
             const docSnap = await getDocs(q);
     
@@ -123,10 +179,6 @@ class PostsModel {
         }
     }
 
-    async getCommentByUserID(u_id) {
-
-    }
-
     async getAllComments(p_id, u_id) {
         try {
             const q = query(collection(db, 'comments'), where('post', '==', p_id));
@@ -143,6 +195,24 @@ class PostsModel {
             }
         } catch (error) {
             console.error(error);
+        }
+    }
+
+    async getHiddenCommentsByUser(u_id, p_id) {
+        try {
+            const q = query(
+                collection(db, 'hidden_comments'),
+                where('user_id', '==', u_id),
+                where('post', '==', p_id)
+            );
+            const snapshot = await getDocs(q);
+            if (snapshot.empty) {
+                return []
+            } else {
+                return snapshot.docs.map(doc => doc.data().comment_id);
+            }
+        } catch (error) {
+            console.error("Error when getting hidden comments by user");
         }
     }
 
@@ -200,14 +270,90 @@ class PostsModel {
             throw error;
         }
     }
-    
 
-    async getHiddenCommentsByUser(u_id, p_id) {
-        const q = query(collection(db, 'hidden_comments'), where('user_id', '==', u_id), where('post_id', '==', p_id));
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => doc.data().comment_id);
+    async isSaved(username, p_id) {
+        try {
+            const q = query(
+                collection(db, 'savedposts'),
+                where('user_username', '==', username),
+                where('post_id', '==', p_id)
+            );
+            const snapshot = await getDocs(q);
+            return !snapshot.empty;
+        } catch (error) {
+            console.error("Error when checking saved post:", error);
+            throw error;
+        }
     }
     
+    async savePost(username, p_id) {
+        try {
+            const isPostSaved = await this.isSaved(username, p_id);
+            if (isPostSaved) {
+                return { isPostSaved: true };
+            }
+    
+            const content = {
+                user_username: username,
+                post_id: p_id,
+                saveDate: new Date()
+            };
+    
+            const snapdoc = await addDoc(collection(db, 'savedposts'), content);
+            return { isPostSaved: false, id: snapdoc.id };
+        } catch (error) {
+            console.error("Error when saving post:", error);
+            throw error;
+        }
+    }
+
+    async getSavePost(username, p_id) {
+        try {
+            const savedPostRef = collection(db, 'savedposts');
+            const q = query(savedPostRef, where('user_username', '==', username), where('post_id', '==', p_id));
+            const snapDoc = await getDocs(q);
+            if (snapDoc.empty) {
+                console.log("Not found saved post");
+                return null;
+            } else {
+                return {
+                    savePostId: snapDoc.docs[0].id,
+                    ...snapDoc.docs[0].data()
+                }
+            }
+        } catch (error) {
+            console.error("Error when getting saved post"); 
+        }
+    }
+    
+    async deleteSavePost(username, p_id) {
+        try {
+            const getSavePostId = await this.getSavePost(username, p_id);
+            const savedPostRef = doc(db, 'savedposts', getSavePostId.savePostId);
+            await deleteDoc(savedPostRef);
+        } catch (error) {
+            console.error("Error when deleting saved post");
+        }
+    }
+    
+    async getAllSavePosts(u_id) {
+        try {
+            const savePostsRef = collection(db, 'savedposts');
+            const q = query(savePostsRef, where('u_id', '==', u_id));
+            const snapshot =  await getDocs(q);
+            if (snapshot.empty) {
+                return [];
+            } else {
+                const getAllSavedPosts = snapshot.docs.map(doc => ({
+                    savePostId: doc.id,
+                    ...doc.data()
+                }));
+                return getAllSavedPosts;
+            }
+        } catch (error) {
+            console.error("Error when getting all saved posts");
+        }
+    }
 }
 
 export default PostsModel;

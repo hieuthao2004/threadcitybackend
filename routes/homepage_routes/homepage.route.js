@@ -27,9 +27,10 @@ router.post("/create_post", authorization, async (req, res) => {
     }
 });
 
-router.get("/posts", async (req, res) => {
+router.get("/posts", authorization, async (req, res) => {
+    const userID = req.userId;
     try {
-        const posts = await model.getAllPosts();
+        const posts = await model.getAllPosts(userID);
         return res.status(200).json({ allPosts: posts })
     } catch (error) {
         console.error(error);
@@ -67,8 +68,40 @@ router.put("/posts/:p_id", authorization, async (req, res) => {
     }
 });
 
+router.post("/posts/:p_id/hide", authorization, async (req, res) => {
+    const userId = req.userId;
+    const post_id = req.params.p_id;
+    try {
+        const content = {
+            u_id: userId,
+            username: await userModel.getUsername(userId),
+            p_id: post_id,
+            hiddenAt: new Date()
+        }
+        await model.hidePost(content);
+        return res.status(200).json({msg: "Hide Post"})
+    } catch (error) {
+        console.error(error);
+    }
+});
+
+router.put("/posts/:p_id/softdelete", authorization, async (req, res) => {
+    const userId = req.userId;
+    const { p_id } = req.params;
+    console.log(p_id);
+    
+
+    try {
+        await model.softDeletePost(p_id, userId);
+        return res.status(200).json({ msg: "Post deleted!" });
+    } catch (error) {
+        console.error("Error deleting post:", error);
+        return res.status(500).json({ msg: "Failed to delete post" });
+    }
+});
+
 // CD like
-router.post("/posts/liked/:p_id", authorization, async (req, res) => {
+router.post("/posts/:p_id/liked", authorization, async (req, res) => {
     const { p_id } = req.params;
     const userID = req.userId;
 
@@ -86,7 +119,7 @@ router.post("/posts/liked/:p_id", authorization, async (req, res) => {
 });
 
 
-router.delete("/posts/liked/:p_id", authorization, async (req, res) => {
+router.delete("/posts/:p_id/disliked", authorization, async (req, res) => {
     const { p_id } = req.params;
     const user = req.userId;
 
@@ -108,6 +141,8 @@ router.delete("/posts/liked/:p_id", authorization, async (req, res) => {
 router.get("/posts/:p_id/comments", authorization, async (req, res) => {
     const { p_id } = req.params;
     const user_id = req.userId;
+    console.log(user_id);
+    
 
     try {
         const comments = await model.getAllComments(p_id, user_id);
@@ -134,6 +169,7 @@ router.post("/posts/:p_id/comments", authorization, async (req, res) => {
             c_creater: await userModel.getUsername(user_id),
             post: p_id,
             content: cmt.comment,
+            c_image_url: "",
             c_createAt: new Date(),
         };
         await model.createComment(content);
@@ -187,6 +223,33 @@ router.delete("/posts/:p_id/comments/:c_id", authorization, async (req, res) => 
     } catch (error) {
         console.error("Delete comment error:", error);
         return res.status(403).json({ msg: error.message || "You can't delete this comment" });
+    }
+});
+
+// CD save post
+router.post("/posts/:p_id/saved", authorization, async (req, res) => {
+    try {
+        const userID = req.userId;
+        const username = await userModel.getUsername(userID);
+        const { p_id } = req.params;
+
+        const result = await model.savePost(username, p_id);
+
+        if (result.isPostSaved) {
+            return res.status(200).json({
+                msg: "Post already saved",
+                saved: false
+            });
+        }
+
+        return res.status(200).json({
+            msg: "Post saved",
+            saved: true,
+            savedId: result.id
+        });
+    } catch (error) {
+        console.error("Error saving post:", error);
+        return res.status(500).json({ msg: "Failed to save post" });
     }
 });
 

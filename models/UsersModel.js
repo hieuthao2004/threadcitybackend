@@ -55,14 +55,41 @@ class UsersModel {
 
     async getUserComments(u_id) {
         try {
-            
+            const cmtRef = collection(db, 'comments');
+            const q = query(cmtRef, where('user', '==', u_id));
+            const snapshot = await getDocs(q);
+            if (snapshot.empty) {
+                return [];
+            } else {
+                const getAllComments = snapshot.docs.map(doc => ({
+                    cmt_id: doc.id,
+                    ...doc.data()
+                }));
+                return getAllComments;
+            }
         } catch (error) {
-            
+            console.error("Error when getting all comments");
         }
     }
 
-    async getUserPosts(u_id) {
-        
+    async getUserPosts(username) {
+        try {
+            const userRef = collection(db, 'posts');
+            const q = query(userRef, where('p_creater', '==', username), where('p_is_visible', '==', true));
+            const snapshot = await getDocs(q);
+            if (!snapshot.empty) {
+                const getAllPosts = snapshot.docs.map(doc => ({
+                    post_id: doc.id,
+                    ...doc.data()
+                }))
+                return getAllPosts;
+            } else {
+                console.log("No post is found");
+                return null;
+            }
+        } catch (error) {
+            console.error("Error when getting posts");
+        }
     }
 
     async checkUserExistByEmail(email) {

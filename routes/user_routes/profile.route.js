@@ -40,5 +40,33 @@ router.put("/profile/@:username", authorization, async (req, res) => {
     }
 });
 
+router.get("/profile/@:username/comments", authorization, async (req, res) => {
+    try {
+        const userID = req.userId;
+        const alldata = await model.getUserComments(userID);
+        return res.status(200).json({msg: "All comments", allUserComments: alldata});
+    } catch (error) {
+        return res.status(400).json({msg: "An error occurred while getting all user comments."});
+    }
+});
+
+router.get("/profile/@:username/posts", authorization, async (req, res) => {
+    try {
+        const userID = req.userId;
+        const username = await model.getUsername(userID);        
+        const allPosts = await model.getUserPosts(username);
+        return res.status(200).json({msg: "Good", allUserPosts: allPosts})
+    } catch (error) {
+        return res.status(400).json({msg: "An error occurred while getting all user posts."});
+    }
+});
+
+router.get("/profile/@:username/posts/saved", authorization, async (req, res) => {
+    try {
+       
+    } catch (error) {
+        
+    }
+})
 
 export default router;
