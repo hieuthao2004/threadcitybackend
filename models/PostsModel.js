@@ -338,6 +338,68 @@ class PostsModel {
         }
     }
 
+    async isReposted(username, p_id) {
+        try {
+            const repostRef = collection(db, 'reposts');
+            const q = query(
+                repostRef,
+                where("username", "==", username),
+                where("post_id", "==", p_id)
+            );
+            const docSnap = await getDocs(q);
+            return !docSnap.empty;
+        } catch (error) {
+            console.error("Error when checking repost:", error);
+            throw error;
+        }
+    }
+
+    async createRepost(content) {
+        try {
+            const repostRef = collection(db, 'reposts');
+            const docSnap = await addDoc(repostRef, content);
+            return docSnap.id;
+        } catch (error) {
+            console.error("Error when reposting a post");
+        }
+    }
+
+    async getRepostedPost(p_id, u_id) {
+        try {
+            const repostRef = collection(db, 'reposts');
+            const q = query(
+                repostRef,
+                where("post_id", "==", p_id),
+                where("user_id", "==", u_id)
+            );
+            const docSnap = await getDocs(q);
+    
+            if (docSnap.empty) {
+                return null;
+            }
+    
+            return {
+                id: docSnap.docs[0].id,
+                ...docSnap.docs[0].data()
+            };
+        } catch (error) {
+            console.error("Error when getting reposted post:", error);
+            throw error;
+        }
+    }
+    
+    async deleteRepost(u_id, p_id) {
+        try {
+            const repost = await this.getRepostedPost(p_id, u_id);
+            if (repost) {
+                const repostRef = doc(db, 'reposts', repost.id);
+                await deleteDoc(repostRef);
+            }
+        } catch (error) {
+            console.error("Error when deleting repost:", error);
+        }
+    }
+    
 }
 
 export default PostsModel;

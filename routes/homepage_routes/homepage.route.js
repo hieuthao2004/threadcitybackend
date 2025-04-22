@@ -253,4 +253,50 @@ router.post("/profile/posts/:p_id/saved", authorization, async (req, res) => {
     }
 });
 
+// CD repost
+router.post("/posts/:p_id/reposted", authorization, async (req, res) => {
+    const userId = req.userId;
+    const { p_id } = req.params;
+    const { repostContent } = req.body;
+
+    try {
+        const username = await model.getUsername(userId);
+        const isReposted = await model.isReposted(userId, p_id);
+
+        if (isReposted) {
+            return res.status(401).json({ msg: "Post is already reposted" });
+        }
+
+        const content = {
+            user_id: userId,
+            username: username,
+            post_id: p_id,
+            content: repostContent,
+            repost_at: new Date()
+        };
+
+        const repostId = await model.createRepost(content);
+        return res.status(200).json({ msg: "Reposted", id: repostId });
+
+    } catch (error) {
+        console.error("Error while reposting post:", error);
+        return res.status(500).json({ msg: "Internal server error" });
+    }
+});
+
+router.delete("/posts/:p_id/unreposted", authorization, async (req, res) => {
+    const userID = req.userId;
+    const { p_id } = req.params;
+
+    try {
+        await model.deleteRepost(userID, p_id);
+        return res.status(200).json({ msg: "Delete repost" });
+    } catch (error) {
+        console.error("Error when deleting repost:", error);
+        return res.status(500).json({ msg: "Failed to delete repost" });
+    }
+});
+
+
+
 export default router;

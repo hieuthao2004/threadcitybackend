@@ -105,7 +105,7 @@ router.delete("/profile/posts/:p_id/unsaved", authorization, async (req, res) =>
     } catch (error) {
         return res.status(500).json({ msg: "Failed to delete saved posts" });
     }
-})
+});
 
 
 export default router;
