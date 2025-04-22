@@ -23,11 +23,14 @@ router.post("/register", async (req, res) => {
         const userData = {
             u_email: email,
             u_username: username,
+            u_fullname: "",
             u_password: hashedPassword,
             u_createAt: new Date(),
             u_status: false,
             u_role: 'user',
             u_bio: "",
+            u_avatar: "",
+            u_isBanned: false
         }
         const user = await model.createUser(userData);
         if (user) {
