@@ -15,6 +15,10 @@ router.post("/follows/:u_id/followed", authorization, async (req, res) => {
         }
 
         await followsModel.followPeople(userId, u_id);
+        const receiver_id = await model.getPostOwner(p_id);
+        const username = await userModel.getUsername(user_id);
+        const msg = `${username} followed you`;
+        await notificationsModel.createNotification(receiver_id, userId, 'follow', "", msg);
         return res.status(200).json({ msg: "Now following", followed: true });
     } catch (error) {
         console.error("Error in follow route:", error);

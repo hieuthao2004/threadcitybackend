@@ -52,6 +52,17 @@ class PostsModel {
         }
     }
 
+    async getPostOwner(p_id) {
+        try {
+            const postRef = doc(db, 'posts', p_id);
+            const docSnap = await getDoc(postRef);
+            return docSnap.data().u_id;
+        } catch (error) {
+            console.error("Error getting post owner:", error);
+            throw error;
+        }
+    }
+
     async updatePost(user_id, p_id, content) {
         try {
             const postRef = doc(db, 'posts', p_id);
@@ -161,13 +172,18 @@ class PostsModel {
             );
             const docSnap = await getDocs(q);
     
+            if (docSnap.empty) return false;
+    
             for (const doc of docSnap.docs) {
                 await deleteDoc(doc.ref); 
             }
+    
+            return true;
         } catch (error) {
             console.error("Error unliking the post:", error);
+            return false;
         }
-    }
+    }    
 
     async createComment(content) {
         try {
@@ -252,24 +268,28 @@ class PostsModel {
     
             const commentData = commentSnap.data();
     
+            // Nếu là người tạo comment → được xoá
             if (commentData.user === userId) {
                 await deleteDoc(commentRef);
+                return true;
             }
     
+            // Nếu là chủ post → cũng được xoá
             const postRef = doc(db, "posts", postId);
             const postSnap = await getDoc(postRef);
     
-            if (postSnap.exists() && postSnap.data().creator === userId) {
+            if (postSnap.exists() && postSnap.data().u_id === userId) {
                 await deleteDoc(commentRef);
+                return true;
             }
     
             throw new Error("You are not authorized to delete this comment");
     
         } catch (error) {
-            console.error(error);
+            console.error("deleteComment error:", error);
             throw error;
         }
-    }
+    }    
 
     async isSaved(username, p_id) {
         try {

@@ -1,4 +1,5 @@
 import { addDoc, collection, deleteDoc, getDocs, query, where } from "firebase/firestore";
+import { db } from "../services/db.service.js";
 
 class FollowsModel {
     async isFollowed(follower, following) {

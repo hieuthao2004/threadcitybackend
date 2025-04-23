@@ -1,7 +1,7 @@
 import { EVENTS } from './events.js';
 import commentHandler from './handlers/commentHandler.js';
 import postHandler from './handlers/postHandler.js';
-import notifiHandler from './handlers/notifiHandler.js';
+// import notifiHandler from './handlers/notifiHandler.js';
 import authenticationHandler from './handlers/authenticationHandler.js';
 import socketAuthorization from '../middleware/socketAuthorization.js';
 import socketService from '../services/socket.service.js';
