@@ -309,20 +309,22 @@ class PostsModel {
 
     async getSavePost(username, p_id) {
         try {
-            const savedPostRef = collection(db, 'savedposts');
-            const q = query(savedPostRef, where('user_username', '==', username), where('post_id', '==', p_id));
+            const q = query(
+                collection(db, 'savedposts'),
+                where('user_username', '==', username),
+                where('post_id', '==', p_id)
+            );
             const snapDoc = await getDocs(q);
-            if (snapDoc.empty) {
-                console.log("Not found saved post");
-                return null;
-            } else {
-                return {
-                    savePostId: snapDoc.docs[0].id,
-                    ...snapDoc.docs[0].data()
-                }
-            }
+            if (snapDoc.empty) return null;
+    
+            const docData = snapDoc.docs[0];
+            return {
+                savePostId: docData.id,
+                ...docData.data()
+            };
         } catch (error) {
-            console.error("Error when getting saved post"); 
+            console.error("Error when getting saved post:", error); 
+            throw error;
         }
     }
     
@@ -335,25 +337,69 @@ class PostsModel {
             console.error("Error when deleting saved post");
         }
     }
-    
-    async getAllSavePosts(u_id) {
+
+    async isReposted(username, p_id) {
         try {
-            const savePostsRef = collection(db, 'savedposts');
-            const q = query(savePostsRef, where('u_id', '==', u_id));
-            const snapshot =  await getDocs(q);
-            if (snapshot.empty) {
-                return [];
-            } else {
-                const getAllSavedPosts = snapshot.docs.map(doc => ({
-                    savePostId: doc.id,
-                    ...doc.data()
-                }));
-                return getAllSavedPosts;
-            }
+            const repostRef = collection(db, 'reposts');
+            const q = query(
+                repostRef,
+                where("username", "==", username),
+                where("post_id", "==", p_id)
+            );
+            const docSnap = await getDocs(q);
+            return !docSnap.empty;
         } catch (error) {
-            console.error("Error when getting all saved posts");
+            console.error("Error when checking repost:", error);
+            throw error;
         }
     }
+
+    async createRepost(content) {
+        try {
+            const repostRef = collection(db, 'reposts');
+            const docSnap = await addDoc(repostRef, content);
+            return docSnap.id;
+        } catch (error) {
+            console.error("Error when reposting a post");
+        }
+    }
+
+    async getRepostedPost(p_id, u_id) {
+        try {
+            const repostRef = collection(db, 'reposts');
+            const q = query(
+                repostRef,
+                where("post_id", "==", p_id),
+                where("user_id", "==", u_id)
+            );
+            const docSnap = await getDocs(q);
+    
+            if (docSnap.empty) {
+                return null;
+            }
+    
+            return {
+                id: docSnap.docs[0].id,
+                ...docSnap.docs[0].data()
+            };
+        } catch (error) {
+            console.error("Error when getting reposted post:", error);
+            throw error;
+        }
+    }
+    
+    async deleteRepost(u_id, p_id) {
+        try {
+            const repost = await this.getRepostedPost(p_id, u_id);
+            if (repost) {
+                const repostRef = doc(db, 'reposts', repost.id);
+                await deleteDoc(repostRef);
+            }
+        } catch (error) {
+            console.error("Error when deleting repost:", error);
+        }
+    }
+    
 }
 
 export default PostsModel;

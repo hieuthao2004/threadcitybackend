@@ -2,7 +2,9 @@ import express from 'express';
 import authorization from '../../middleware/authorization.js';
 const router = express.Router();
 import UsersModel from '../../models/UsersModel.js';
+import PostsModel from '../../models/PostsModel.js';
 const model = new UsersModel();
+const postModel = new PostsModel();
 
 // generally get a user data be default
 router.get("/profile/@:username", async (req, res) => {
@@ -40,7 +42,7 @@ router.put("/profile/@:username", authorization, async (req, res) => {
     }
 });
 
-router.get("/profile/@:username/comments", authorization, async (req, res) => {
+router.get("/profile/comments", authorization, async (req, res) => {
     try {
         const userID = req.userId;
         const alldata = await model.getUserComments(userID);
@@ -50,7 +52,7 @@ router.get("/profile/@:username/comments", authorization, async (req, res) => {
     }
 });
 
-router.get("/profile/@:username/posts", authorization, async (req, res) => {
+router.get("/profile/posts", authorization, async (req, res) => {
     try {
         const userID = req.userId;
         const username = await model.getUsername(userID);        
@@ -61,12 +63,51 @@ router.get("/profile/@:username/posts", authorization, async (req, res) => {
     }
 });
 
-router.get("/profile/@:username/posts/saved", authorization, async (req, res) => {
+router.get("/profile/posts/saved", authorization, async (req, res) => {
     try {
-       
+        const userId = req.userId;
+
+        const allSavedPosts = await model.getAllUserSavePosts(userId);
+
+        return res.status(200).json({
+            msg: "Fetched saved posts successfully",
+            savedPosts: allSavedPosts
+        });
     } catch (error) {
-        
+        console.error("Error fetching saved posts:", error);
+        return res.status(500).json({ msg: "Failed to fetch saved posts" });
     }
-})
+});
+
+router.get("/profile/posts/:p_id/saved", authorization, async (req, res) => {
+    try {
+        const userId = req.userId;
+        const { p_id } = req.params;
+
+        const safeDataSavedPost = await postModel.getSavePost(userId,p_id);
+
+        return res.status(200).json({
+            msg: "Get saved post successfully",
+            savedPost: safeDataSavedPost
+        });
+    } catch (error) {
+        console.error("Error fetching saved posts:", error);
+        return res.status(500).json({ msg: "Failed to fetch saved posts" });
+    }
+});
+
+router.delete("/profile/posts/:p_id/unsaved", authorization, async (req, res) => {
+    try {
+        const userId = req.userId;
+        const {p_id} = req.params;
+        await postModel.deleteSavePost(userId, p_id);
+        return res.status(200).json({msg: "Deleted save post"})
+    } catch (error) {
+        return res.status(500).json({ msg: "Failed to delete saved posts" });
+    }
+});
+
+
+
 
 export default router;

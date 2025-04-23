@@ -92,6 +92,25 @@ class UsersModel {
         }
     }
 
+    async getAllUserSavePosts(u_id) {
+        try {
+            const savePostsRef = collection(db, 'savedposts');
+            const q = query(savePostsRef, where('u_id', '==', u_id));
+            const snapshot =  await getDocs(q);
+            if (snapshot.empty) {
+                return [];
+            } else {
+                const getAllSavedPosts = snapshot.docs.map(doc => ({
+                    savePostId: doc.id,
+                    ...doc.data()
+                }));
+                return getAllSavedPosts;
+            }
+        } catch (error) {
+            console.error("Error when getting all saved posts");
+        }
+    }
+
     async checkUserExistByEmail(email) {
         try {
             const userRef = collection(db, 'accounts');
