@@ -14,7 +14,7 @@ const io = require('socket.io')(server, {
     },
 });
 
-// Initialize socket.io
+//socket.io event handlers
 initializeSocket(io);
 
 import registerRoute from './routes/registration.route.js';
