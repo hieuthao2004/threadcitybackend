@@ -9,6 +9,7 @@ import authRoute from './routes/authentication/authentication.route.js';
 import authorizationRoute from './routes/authorization/authorization.route.js';
 import homepageRoute from './routes/homepage_routes/homepage.route.js';
 import profileRoute from './routes/user_routes/profile.route.js';
+import followsRoute from './routes/user_routes/follows.route';
 
 app.use(cors({
     origin: 'http://localhost:5173',
@@ -26,6 +27,7 @@ app.use("/api", authRoute);
 app.use("/api", authorizationRoute);
 app.use("/api", homepageRoute);
 app.use("/api", profileRoute);
+app.use("/api", followsRoute);
 
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
