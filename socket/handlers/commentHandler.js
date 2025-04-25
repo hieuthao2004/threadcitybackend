@@ -24,8 +24,9 @@ const commentHandler = (io, socket) => {
     socket.on(EVENTS.COMMENT_CREATED, async (data) => {
         try {
             const { postId, userId, content } = data;
+            
             //get username by userId
-            const username = await usersModel.getUsernameById(userId);
+            const username = await usersModel.getUsername(userId);
 
             //generate comment object in database
             const commentData = {
@@ -49,19 +50,20 @@ const commentHandler = (io, socket) => {
                 updatedAt: new Date(),
             };
 
-            // Use socketService to boardcast new comment to everyone in the post
+            // Use socketService to broadcast new comment to everyone in the post
             socketService.emitToPost(postId, EVENTS.COMMENT_CREATED, comment);
 
-            //notify new comment to post owner
-            const post = await postsModel.getPostById(postId);
-            if (post && post.user !== userId) {
-                const notification = socketService.createNotification(
-                    'comment',
-                    userId,
-                    post.user,
-                    postId
-                );
-                socketService.sendNotification(post.user, notification);
+            // Notify post owner about new comment
+            const postOwner = await postsModel.getPostOwner(postId);
+            
+            if (postOwner && postOwner !== userId) {
+                await socketService.createAndSendNotification({
+                    receiverId: postOwner,
+                    senderId: userId,
+                    type: 'comment',
+                    postId: postId,
+                    message: `${username} commented on your post`
+                });
             }
         }
         catch (error) {
@@ -74,10 +76,11 @@ const commentHandler = (io, socket) => {
     socket.on(EVENTS.COMMENT_UPDATED, async (data) => {
         try {
             const { postId, commentId, content, userId } = data;
+            
             // Updating comment in the database
             await postsModel.updateComment(userId, postId, commentId, content);
 
-            // Use socketService to boadcast update to everyone in the post
+            // Use socketService to broadcast update to everyone in the post
             socketService.emitToPost(postId, EVENTS.COMMENT_UPDATED, {
                 id: commentId,
                 content,
@@ -92,8 +95,16 @@ const commentHandler = (io, socket) => {
     //delete comment
     socket.on(EVENTS.COMMENT_DELETED, async (data) => {
         try {
-            const { postId, commentId } = data;
-            await postsModel.deleteComment(commentId);
+            const { postId, commentId, userId } = data;
+            
+            // Delete the comment
+            await postsModel.deleteComment(userId, postId, commentId);
+            
+            // Delete any notifications about this comment
+            const postOwner = await postsModel.getPostOwner(postId);
+            if (postOwner) {
+                await socketService.deleteNotification(userId, postOwner, postId, 'comment');
+            }
 
             // Use socketService to broadcast delete comment to everyone in the post
             socketService.emitToPost(postId, EVENTS.COMMENT_DELETED, commentId);

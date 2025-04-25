@@ -3,6 +3,7 @@ import commentHandler from './handlers/commentHandler.js';
 import postHandler from './handlers/postHandler.js';
 import notifiHandler from './handlers/notifiHandler.js';
 import authenticationHandler from './handlers/authenticationHandler.js';
+import followHandler from './handlers/followHandler.js';
 import socketAuthorization from '../middleware/socketAuthorization.js';
 import socketService from '../services/socket.service.js';
 
@@ -22,6 +23,7 @@ const initializeSocket = (io) => {
         postHandler(io, socket);
         notifiHandler(io, socket);
         authenticationHandler(io, socket);
+        followHandler(io, socket);
         
         // Handle disconnection
         socket.on(EVENTS.DISCONNECT, () => {

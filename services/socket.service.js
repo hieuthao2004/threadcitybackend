@@ -1,4 +1,5 @@
 import { EVENTS } from '../socket/events.js';
+import NotificationsModel from '../models/NotificationsModel.js';
 
 /**
  * Socket service to manage socket.io operations
@@ -7,6 +8,7 @@ import { EVENTS } from '../socket/events.js';
 class SocketService {
   constructor() {
     this.io = null;
+    this.notificationsModel = new NotificationsModel();
   }
 
   // Initialize with socket.io instance
@@ -45,7 +47,65 @@ class SocketService {
     return true;
   }
 
-  // Create and emit a notification
+  /**
+   * Create and send a notification - stores in database AND sends via socket
+   * @param {Object} data Notification data
+   * @param {string} data.receiverId User who receives the notification
+   * @param {string} data.senderId User who triggered the notification
+   * @param {string} data.type Notification type (like, comment, follow, etc)
+   * @param {string|null} data.postId Related post ID if applicable
+   * @param {string} data.message Notification message
+   * @returns {Promise<string|null>} Notification ID or null if failed
+   */
+  async createAndSendNotification(data) {
+    try {
+      const { receiverId, senderId, type, postId, message } = data;
+      
+      // Skip if sender is the receiver
+      if (receiverId === senderId) return null;
+      
+      // 1. Store notification in database
+      const notificationId = await this.notificationsModel.createNotification(
+        receiverId, 
+        senderId, 
+        type, 
+        postId || '', 
+        message
+      );
+      
+      // 2. Send real-time notification via socket
+      const notification = {
+        id: notificationId,
+        type,
+        senderId,
+        message,
+        postId,
+        createAt: new Date()
+      };
+      
+      this.emitToUser(receiverId, EVENTS.NEW_NOTIFICATION, notification);
+      
+      return notificationId;
+    } catch (error) {
+      console.error('Error creating and sending notification:', error);
+      return null;
+    }
+  }
+  
+  /**
+   * Delete a notification from database
+   */
+  async deleteNotification(senderId, receiverId, postId = null, type = null) {
+    try {
+      await this.notificationsModel.deleteNotification(senderId, receiverId, postId, type);
+      return true;
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      return false;
+    }
+  }
+
+  // Legacy method for backward compatibility
   sendNotification(userId, notification) {
     return this.emitToUser(userId, EVENTS.NEW_NOTIFICATION, notification);
   }

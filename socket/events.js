@@ -34,5 +34,11 @@ export const EVENTS = {
     USER_ONLINE: 'user_online',
     USER_OFFLINE: 'user_offline',
     USER_TYPING: 'user_typing',
-    USER_STOPPED_TYPING: 'user_stopped_typing'
+    USER_STOPPED_TYPING: 'user_stopped_typing',
+
+    // Follow 
+    FOLLOW_USER: 'follow_user',
+    UNFOLLOW_USER: 'unfollow_user',
+    GET_ONLINE_FOLLOWING: 'get_online_following',
+    ONLINE_FOLLOWING: 'online_following'
   };
