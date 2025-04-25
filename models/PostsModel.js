@@ -6,7 +6,7 @@ class PostsModel {
         try {
             const postRef = collection(db, 'posts');
             const docRef = await addDoc(postRef, postData);
-            return docRef.id;
+            return { id: docRef.id, ...postData };
         } catch (error) {
             console.error('Error creating post', error);
             throw error;
@@ -69,21 +69,25 @@ class PostsModel {
             const snapDoc = await getDoc(postRef);
             if (snapDoc.exists()) {
                 if (user_id === snapDoc.data().u_id) {
-                    return await updateDoc(postRef,
-                        {
-                            p_content: content,
-                            p_updateAt: new Date()
-                        });
+                    const updatedData = {
+                        p_content: content,
+                        p_updateAt: new Date()
+                    };
+                    await updateDoc(postRef, updatedData);
+    
+                    return { id: p_id, ...updatedData };
                 } else {
                     throw new Error("Not the same user to update the post");
                 }
             } else {
-                throw new Error("No post found!")
+                throw new Error("No post found!");
             }
         } catch (error) {
             console.error(error);
+            throw error;
         }
     }
+    
 
     async hidePost(content) {
         try {
