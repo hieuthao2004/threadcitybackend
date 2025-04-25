@@ -306,7 +306,7 @@ router.delete("/posts/:p_id/unreposted", authorization, async (req, res) => {
     const { p_id } = req.params;
 
     try {
-        await model.deleteRepost(userID, p_id);
+        await model.deleteRepost(userId, p_id);
         const postOwner = await model.getPostOwner(p_id);
         await notificationsModel.deleteNotification(userId, postOwner, p_id, 'repost');
         return res.status(200).json({ msg: "Delete repost" });
