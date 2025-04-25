@@ -34,7 +34,7 @@ class FollowsModel {
     
             const followRef = collection(db, 'follows');
             const docRef = await addDoc(followRef, content);
-            return { followed: false, id: docRef.id, ...docRef.data() };
+            return { followed: false, id: docRef.id };
         } catch (error) {
             console.error("Error while following:", error);
             throw error;

@@ -420,6 +420,9 @@ class PostsModel {
         }
     }
     
+    async getPostsByFollowingPeople(params) {
+        
+    }
 }
 
 export default PostsModel;

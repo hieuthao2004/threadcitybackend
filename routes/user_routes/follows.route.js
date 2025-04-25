@@ -1,8 +1,14 @@
 import express from 'express';
 import authorization from '../../middleware/authorization.js';
 import FollowsModel from '../../models/FollowsModel.js';
+import PostsModel from '../../models/PostsModel.js';
+import UsersModel from '../../models/UsersModel.js';
+import NotificationsModel from '../../models/NotificationsModel.js';
 const router = express.Router();
+const model = new PostsModel()
 const followsModel = new FollowsModel();
+const userModel = new UsersModel()
+const notificationsModel = new NotificationsModel();
 
 router.post("/follows/:u_id/followed", authorization, async (req, res) => {
     const userId = req.userId;
@@ -15,10 +21,9 @@ router.post("/follows/:u_id/followed", authorization, async (req, res) => {
         }
 
         await followsModel.followPeople(userId, u_id);
-        const receiver_id = await model.getPostOwner(p_id);
-        const username = await userModel.getUsername(user_id);
+        const username = await userModel.getUsername(userId);
         const msg = `${username} followed you`;
-        await notificationsModel.createNotification(receiver_id, userId, 'follow', "", msg);
+        await notificationsModel.createNotification(u_id, userId, 'follow', "", msg);
         return res.status(200).json({ msg: "Now following", followed: true });
     } catch (error) {
         console.error("Error in follow route:", error);
@@ -26,7 +31,7 @@ router.post("/follows/:u_id/followed", authorization, async (req, res) => {
     }
 });
 
-router.delete("/follows/:u_id", authorization, async (req, res) => {
+router.delete("/follows/:u_id/unfollowed", authorization, async (req, res) => {
     const userId = req.userId;
     const { u_id: following_id } = req.params;
 
