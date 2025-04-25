@@ -1,8 +1,8 @@
 import express from 'express';
 import authorization from '../../middleware/authorization.js';
-const router = express.Router();
 import UsersModel from '../../models/UsersModel.js';
 import PostsModel from '../../models/PostsModel.js';
+const router = express.Router();
 const model = new UsersModel();
 const postModel = new PostsModel();
 
@@ -106,8 +106,5 @@ router.delete("/profile/posts/:p_id/unsaved", authorization, async (req, res) =>
         return res.status(500).json({ msg: "Failed to delete saved posts" });
     }
 });
-
-
-
 
 export default router;

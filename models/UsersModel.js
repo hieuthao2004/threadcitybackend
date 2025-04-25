@@ -44,6 +44,23 @@ class UsersModel {
         }
     }
 
+    async getUserById(u_id) {
+        try {
+            const accountRef = doc(db, 'accounts', u_id);
+            const snapDoc = await getDoc(accountRef);
+    
+            if (!snapDoc.exists()) {
+                throw new Error('User not found');
+            }
+    
+            const { u_password, ...safeUserData } = snapDoc.data();
+            return safeUserData;
+        } catch (error) {
+            console.error("Error getting user:", error);
+            throw error;
+        }
+    }
+
     async updateUserData(u_id, content) {
         try {
             const userRef = doc(db, 'accounts', u_id);

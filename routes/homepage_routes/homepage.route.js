@@ -2,10 +2,12 @@ import express from 'express';
 import authorization from '../../middleware/authorization.js';
 import PostsModel from '../../models/PostsModel.js';
 import UsersModel from '../../models/UsersModel.js';
+import NotificationsModel from '../../models/NotificationsModel.js';
 
 const router = express.Router();
 const model = new PostsModel();
 const userModel = new UsersModel();
+const notificationsModel = new NotificationsModel();
 
 // CRUD post
 router.post("/create_post", authorization, async (req, res) => {
@@ -107,6 +109,11 @@ router.post("/posts/:p_id/liked", authorization, async (req, res) => {
 
     try {
         const result = await model.likePost(userID, p_id);
+        const postOwner = await model.getPostOwner(p_id);
+        const actioner = await userModel.getUsername(userID);
+        const msg = `${actioner} liked your post`
+
+        await notificationsModel.createNotification(postOwner, userID, 'like', p_id, msg);
 
         return res.status(200).json({
             msg: result ? "Post liked!" : "Already liked!",
@@ -118,14 +125,16 @@ router.post("/posts/:p_id/liked", authorization, async (req, res) => {
     }
 });
 
-
+// implement here
 router.delete("/posts/:p_id/disliked", authorization, async (req, res) => {
     const { p_id } = req.params;
-    const user = req.userId;
+    const userId = req.userId;
 
     try {
-        const result = await model.unLikedPost(user, p_id);
+        const result = await model.unLikedPost(userId, p_id);
         if (result) {
+            const postOwner = await model.getPostOwner(p_id);
+            await notificationsModel.deleteNotification(userId, postOwner, p_id, 'like');
             return res.status(200).json({ msg: "Unliked" });
         } else {
             return res.status(404).json({ msg: "Like not found"});
@@ -141,9 +150,7 @@ router.delete("/posts/:p_id/disliked", authorization, async (req, res) => {
 router.get("/posts/:p_id/comments", authorization, async (req, res) => {
     const { p_id } = req.params;
     const user_id = req.userId;
-    console.log(user_id);
     
-
     try {
         const comments = await model.getAllComments(p_id, user_id);
 
@@ -173,6 +180,10 @@ router.post("/posts/:p_id/comments", authorization, async (req, res) => {
             c_createAt: new Date(),
         };
         await model.createComment(content);
+        const receiver_id = await model.getPostOwner(p_id);
+        const username = await userModel.getUsername(user_id);
+        const msg = `${username} commented on your post`;
+        await notificationsModel.createNotification(receiver_id, user_id, 'comment', p_id, msg);
         return res.status(200).json({ msg: "Comment created!" });
     } catch (error) {
         console.error("Error creating comment:", error);
@@ -216,14 +227,16 @@ router.post("/posts/:p_id/comments/:c_id/hide", authorization, async (req, res) 
 router.delete("/posts/:p_id/comments/:c_id", authorization, async (req, res) => {
     const userId = req.userId;
     const { p_id, c_id } = req.params;
-
     try {
         await model.deleteComment(userId, p_id, c_id);
+        const postOwner = await model.getPostOwner(p_id);
+        await notificationsModel.deleteNotification(userId, postOwner, p_id, 'comment');
         return res.status(200).json({ msg: "Comment deleted successfully" });
     } catch (error) {
         console.error("Delete comment error:", error);
         return res.status(403).json({ msg: error.message || "You can't delete this comment" });
     }
+    
 });
 
 // CD save post
@@ -276,6 +289,10 @@ router.post("/posts/:p_id/reposted", authorization, async (req, res) => {
         };
 
         const repostId = await model.createRepost(content);
+        const receiver_id = await model.getPostOwner(p_id);
+        const sender_username = await userModel.getUsername(userId);
+        const msg = `${sender_username} reposted your post`;
+        await notificationsModel.createNotification(receiver_id, userId, 'repost', p_id, msg);
         return res.status(200).json({ msg: "Reposted", id: repostId });
 
     } catch (error) {
@@ -285,11 +302,13 @@ router.post("/posts/:p_id/reposted", authorization, async (req, res) => {
 });
 
 router.delete("/posts/:p_id/unreposted", authorization, async (req, res) => {
-    const userID = req.userId;
+    const userId = req.userId;
     const { p_id } = req.params;
 
     try {
         await model.deleteRepost(userID, p_id);
+        const postOwner = await model.getPostOwner(p_id);
+        await notificationsModel.deleteNotification(userId, postOwner, p_id, 'repost');
         return res.status(200).json({ msg: "Delete repost" });
     } catch (error) {
         console.error("Error when deleting repost:", error);

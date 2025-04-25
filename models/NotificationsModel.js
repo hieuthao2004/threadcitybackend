@@ -1,8 +1,8 @@
-import { addDoc, collection, deleteDoc, doc, getDocs, query, updateDoc, where } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, getDocs, query, where } from "firebase/firestore";
 import { db } from "../services/db.service.js";
 
 class NotificationsModel {
-    async createNotification(receiver_id, sender_id, type, post_id, message) {
+    async createNotification( receiver_id, sender_id, type, post_id, message) {
         const notificationRef = collection(db, 'notifications');
         const content = {
             receiver_id: receiver_id,
@@ -10,8 +10,7 @@ class NotificationsModel {
             noti_type: type,
             post_id: post_id,
             message: message,
-            createAt: new Date(),
-            read: false
+            createAt: new Date()
         }
         try {
             const createNoti = await addDoc(notificationRef, content);
@@ -38,7 +37,7 @@ class NotificationsModel {
         } catch (error) {
             console.error("Error getting notifications:", error);
             throw error;
-        }   
+        }
     }
 
     async deleteNotification(sender_id, receiver_id, post_id = null, noti_type = null) {
@@ -73,7 +72,6 @@ class NotificationsModel {
             throw error;
         }
     }
-    
 }
 
 export default NotificationsModel;
