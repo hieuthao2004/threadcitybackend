@@ -1,6 +1,7 @@
 import { EVENTS } from "../events.js";
 import PostsModel from "../../models/PostsModel.js";
 import UsersModel from "../../models/UsersModel.js";
+import socketService from '../../services/socket.service.js';
 
 //function to handle most post events
 const postHandler = (io, socket) => {
@@ -22,21 +23,27 @@ const postHandler = (io, socket) => {
 
             // Notify followers
             const followers = await usersModel.getUserFollowers(userId);
-            followers.forEach(followerId => {
-                const notification = socketService.createNotification(
-                    'new_post',
-                    userId,
-                    followerId,
-                    postId
-                );
-                socketService.sendNotification(followerId, notification);
-            });
+            if (followers && followers.length > 0) {
+                // Get username for more descriptive notification
+                const creatorUsername = await usersModel.getUsername(userId);
+                
+                // Notify each follower about new post
+                for(const followerId of followers) {
+                    await socketService.createAndSendNotification({
+                        receiverId: followerId,
+                        senderId: userId,
+                        type: 'new_post',
+                        postId: postId,
+                        message: `${creatorUsername} created a new post`
+                    });
+                }
+            }
         } 
         catch (error) {
             console.error('Error handling post creation:', error);
             socket.emit('error', { message: 'Failed to create post' });
           }
-    })
+    });
 
     //update post
     socket.on(EVENTS.POST_UPDATED, async (data) => {
@@ -56,7 +63,7 @@ const postHandler = (io, socket) => {
             console.error('Error updating post:', error);
             socket.emit('error', { message: 'Failed to update post' });
           }
-    })
+    });
 
     //delete post
     socket.on(EVENTS.POST_DELETED, async (data) => {
@@ -79,30 +86,32 @@ const postHandler = (io, socket) => {
     // Handle post likes
     socket.on(EVENTS.POST_LIKED, async (data) => {
         try {
-        const { postId, userId } = data;
-      
-        // Like the post in the database
-        await postsModel.likePost(userId, postId);
-      
-        // Get post info to notify owner
-        const post = await postsModel.findPostById(postId);
-      
-        // Notify post owner if they're not the liker
-        if (post && post.u_id !== userId) {
-            io.to(`user:${post.u_id}`).emit(EVENTS.NEW_NOTIFICATION, {
-            type: 'like',
-            postId,
-            actorId: userId,
-            createdAt: new Date(),
+            const { postId, userId } = data;
+          
+            // Like the post in the database
+            await postsModel.likePost(userId, postId);
+          
+            // Get post info to notify owner
+            const post = await postsModel.findPostById(postId);
+            const username = await usersModel.getUsername(userId);
+          
+            // Notify post owner if they're not the liker
+            if (post && post.u_id !== userId) {
+                await socketService.createAndSendNotification({
+                    receiverId: post.u_id,
+                    senderId: userId,
+                    type: 'like',
+                    postId,
+                    message: `${username} liked your post`
+                });
+            }
+          
+            // Update like count for all users viewing this post
+            socketService.emitToPost(postId, EVENTS.POST_LIKED, {
+                postId,
+                userId,
+                likeCount: post.likes ? post.likes.length + 1 : 1
             });
-        }
-      
-        // Update like count for all users viewing this post
-        io.to(`post:${postId}`).emit(EVENTS.POST_LIKED, {
-            postId,
-            userId,
-            likeCount: post.likes ? post.likes.length + 1 : 1
-        });
         } 
         catch (error) {
             console.error('Error handling post like:', error);
@@ -114,15 +123,20 @@ const postHandler = (io, socket) => {
     socket.on(EVENTS.POST_UNLIKED, async (data) => {
         try {
             const { postId, userId } = data;
-      
+          
             // Unlike the post in the database
             await postsModel.unLikedPost(userId, postId);
-      
+          
             // Get updated post info
             const post = await postsModel.findPostById(postId);
-      
+            
+            // Delete notification if it exists
+            if (post && post.u_id !== userId) {
+                await socketService.deleteNotification(userId, post.u_id, postId, 'like');
+            }
+          
             // Update like count for all users viewing this post
-            io.to(`post:${postId}`).emit(EVENTS.POST_UNLIKED, {
+            socketService.emitToPost(postId, EVENTS.POST_UNLIKED, {
                 postId,
                 userId,
                 likeCount: post.likes ? post.likes.length : 0

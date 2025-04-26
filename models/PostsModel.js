@@ -2,11 +2,29 @@ import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, upd
 import { db } from "../services/db.service.js";
 
 class PostsModel {
+    async updatePostImage(postId, imageUrl) {
+        try {
+            const postRef = doc(db, 'posts', postId);
+            await updateDoc(postRef, {
+                p_image_url: imageUrl,
+                p_updateAt: new Date()
+            });
+            return true;
+        } catch (error) {
+            console.error("Error updating post image:", error);
+            throw error;
+        }
+    }
+
     async createPost(postData) {
         try {
             const postRef = collection(db, 'posts');
-            const docRef = await addDoc(postRef, postData);
-            return { id: docRef.id, ...postData };
+            const docRef = await addDoc(postRef, {
+                ...postData,
+                p_create_at: new Date(),
+            });
+            return docRef.id;
+
         } catch (error) {
             console.error('Error creating post', error);
             throw error;

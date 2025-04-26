@@ -1,5 +1,6 @@
 import express from 'express';
 import authorization from '../../middleware/authorization.js';
+import uploadImageMiddleware from '../../middleware/uploadMiddleware.js';
 import UsersModel from '../../models/UsersModel.js';
 import PostsModel from '../../models/PostsModel.js';
 import { usersIndex } from '../../services/algolia.js';
@@ -131,6 +132,29 @@ router.delete("/profile/posts/:p_id/unsaved", authorization, async (req, res) =>
     } catch (error) {
         return res.status(500).json({ msg: "Failed to delete saved posts" });
     }
+});
+
+
+//keep the REST API route for image uploads
+router.put("/profile/avatar", authorization, uploadImageMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+    const imageUrl = req.imageUrl; // This comes from the uploadImageMiddleware
+    
+    if (!imageUrl) {
+      return res.status(400).json({ msg: "No image provided" });
+    }
+    
+    await model.updateAvatar(userId, imageUrl);
+    
+    return res.status(200).json({ 
+      msg: "Avatar updated successfully",
+      avatarUrl: imageUrl
+    });
+  } catch (error) {
+    console.error("Error updating avatar:", error);
+    return res.status(500).json({ msg: "Failed to update avatar" });
+  }
 });
 
 export default router;

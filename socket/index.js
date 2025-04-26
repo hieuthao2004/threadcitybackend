@@ -1,8 +1,10 @@
 import { EVENTS } from './events.js';
 import commentHandler from './handlers/commentHandler.js';
 import postHandler from './handlers/postHandler.js';
-// import notifiHandler from './handlers/notifiHandler.js';
+import notifiHandler from './handlers/notifiHandler.js';
 import authenticationHandler from './handlers/authenticationHandler.js';
+import followHandler from './handlers/followHandler.js';
+import imageHandler from './handlers/imageHandler.js'; // Add this line
 import socketAuthorization from '../middleware/socketAuthorization.js';
 import socketService from '../services/socket.service.js';
 
@@ -17,16 +19,18 @@ const initializeSocket = (io) => {
       // Apply socket authorization middleware
       socketAuthorization(socket, io);
         
-        // Initialize handlers
-        commentHandler(io, socket);
-        postHandler(io, socket);
-        notifiHandler(io, socket);
-        authenticationHandler(io, socket);
+      // Initialize handlers
+      commentHandler(io, socket);
+      postHandler(io, socket);
+      notifiHandler(io, socket);
+      authenticationHandler(io, socket);
+      followHandler(io, socket);
+      imageHandler(io, socket); // Add this line
         
-        // Handle disconnection
-        socket.on(EVENTS.DISCONNECT, () => {
-            console.log(`User disconnected: ${socket.id}`);
-        });
+      // Handle disconnection
+      socket.on(EVENTS.DISCONNECT, () => {
+          console.log(`User disconnected: ${socket.id}`);
+      });
     });
     
     return io;
