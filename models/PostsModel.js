@@ -126,6 +126,7 @@ class PostsModel {
             const postInfo = (await docSnap).data();
             if (postInfo.u_id === u_id) {
                 await updateDoc(postRef, {p_is_visible: false});
+                return { id: p_id };
             } else {
                 throw new Error("Unauthorized to delete the post")
             }

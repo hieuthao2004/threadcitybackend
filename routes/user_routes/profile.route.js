@@ -2,6 +2,7 @@ import express from 'express';
 import authorization from '../../middleware/authorization.js';
 import UsersModel from '../../models/UsersModel.js';
 import PostsModel from '../../models/PostsModel.js';
+import { usersIndex } from '../../services/algolia.js';
 const router = express.Router();
 const model = new UsersModel();
 const postModel = new PostsModel();
@@ -27,18 +28,43 @@ router.get("/profile/@:username", async (req, res) => {
 router.put("/profile/@:username", authorization, async (req, res) => {
     const userID = req.userId;
     const { username } = req.params;
-    const content = req.body.content;
+    const updateData = req.body; // Nhận toàn bộ object update
     
     try {
-        if (await model.getUsername(userID) !== username) {
-            return res.status(401).json({ msg: "Unauthorized to change other profile!" });
-        } else {
-            await model.updateUserData(userID, content);
-            return res.status(200).json({ msg: "Profile updated successfully!" });
+        // Kiểm tra quyền chỉnh sửa
+        const currentUsername = await model.getUsername(userID);
+        if (currentUsername !== username) {
+            return res.status(403).json({ msg: "Unauthorized to edit this profile" });
         }
+        await model.updateUserData(userID, updateData);
+        
+        const updatedUser = await model.getUserById(userID);
+        
+        await usersIndex.partialUpdateObject({
+            objectID: userID,
+            ...updateData,
+            username: updatedUser.u_username,
+            fullname: updatedUser.u_fullname,
+            avatar: updatedUser.u_avatar,
+            bio: updatedUser.u_bio
+        });
+
+        return res.status(200).json({ 
+            msg: "Profile updated successfully",
+            user: {
+                username: updatedUser.u_username,
+                fullname: updatedUser.u_fullname,
+                avatar: updatedUser.u_avatar,
+                bio: updatedUser.u_bio
+            }
+        });
+
     } catch (error) {
-        console.error("Error updating profile:", error);
-        return res.status(400).json({ msg: error.message || "An error occurred while updating profile." });
+        console.error("Update profile error:", error);
+        return res.status(500).json({ 
+            msg: "Failed to update profile",
+            error: error.message 
+        });
     }
 });
 

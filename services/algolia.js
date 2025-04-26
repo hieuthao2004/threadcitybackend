@@ -1,6 +1,10 @@
 import algoliasearch from 'algoliasearch';
 
 const client = algoliasearch('7C5YDKSGYW', '186a9ba283ae350d078375091c0804a1');
-const index = client.initIndex('posts');
+const postsIndex = client.initIndex('posts');
+const usersIndex = client.initIndex('users'); 
 
-export default index;
+export { 
+  postsIndex as index, 
+  usersIndex as usersIndex
+};

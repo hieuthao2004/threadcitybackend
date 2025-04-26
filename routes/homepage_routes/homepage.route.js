@@ -3,7 +3,8 @@ import authorization from '../../middleware/authorization.js';
 import PostsModel from '../../models/PostsModel.js';
 import UsersModel from '../../models/UsersModel.js';
 import NotificationsModel from '../../models/NotificationsModel.js';
-import index from '../../services/algolia.js';
+import { index } from '../../services/algolia.js';
+import { usersIndex } from '../../services/algolia.js';
 
 const router = express.Router();
 const model = new PostsModel();
@@ -12,11 +13,12 @@ const notificationsModel = new NotificationsModel();
 
 router.get("/search_posts", async (req, res) => {
     const { query } = req.query;
+    
     try {
         const { hits } = await index.search(query, {
             attributesToRetrieve: ['p_content', 'p_creater', 'p_create_at', 'p_image_url'],
             hitsPerPage: 10
-        });
+        });        
 
         return res.status(200).json(hits);
     } catch (error) {
@@ -25,6 +27,22 @@ router.get("/search_posts", async (req, res) => {
     }
 });
 
+
+router.get("/searchs_users", async (req, res) => {
+    const { query } = req.query;
+    
+    try {
+        const { hits } = await usersIndex.search(query, {
+            attributesToRetrieve: ['username', 'u_fullname', 'avatar', 'bio'],
+            hitsPerPage: 10,
+            filters: 'u_isBanned: false'
+        });
+
+        return res.status(200).json(hits);
+    } catch (error) {
+        return res.status(500).json({ msg: "Error searching users" });
+    }
+});
 
 // CRUD post
 router.post("/create_post", authorization, async (req, res) => {
@@ -126,9 +144,9 @@ router.put("/posts/:p_id/softdelete", authorization, async (req, res) => {
 
     try {
         const post = await model.softDeletePost(p_id, userId);
-        await index.saveObject({
+        await index.partialUpdateObject({
             objectID: post.id,
-            ...updatedPostData
+            p_is_visible: false
         });
         return res.status(200).json({ msg: "Post deleted!" });
     } catch (error) {

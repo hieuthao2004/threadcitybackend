@@ -2,6 +2,7 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import UsersModel from '../models/UsersModel.js';
+import { usersIndex } from '../services/algolia.js';
 
 const router = express.Router();
 const model = new UsersModel();
@@ -33,6 +34,19 @@ router.post("/register", async (req, res) => {
             u_isBanned: false
         }
         const user = await model.createUser(userData);
+        console.log(user.id);
+        
+        await usersIndex.saveObject({
+            objectID: user.id,
+            username: user.u_username,
+            email: user.u_email,
+            fullname: user.u_fullname,
+            avatar: user.u_avatar,
+            bio: user.u_bio,
+            role: user.u_role,
+            createdAt: user.u_createAt
+        });
+
         if (user) {
             const token = jwt.sign({id: user.id, role: user.role}, "YOUR_SECRET_KEY");
             return res.status(200).cookie("access_token", token, { httpOnly: true, secure: process.env.NODE_ENV === "production" }).json({msg: "Created account!"});
@@ -42,9 +56,6 @@ router.post("/register", async (req, res) => {
     } catch (error) {
         return res.status(500).json({ message: "Server Error!" });
     }
-
-
-    
 });
 
 export default router;

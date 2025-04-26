@@ -6,7 +6,11 @@ class UsersModel {
         try {
             const usersRef = collection(db, 'accounts');
             const docRef = await addDoc(usersRef, userData);
-            return docRef.id;
+            
+            return {
+                id: docRef.id,
+                ...userData
+            };
         } catch (error) {
             console.error('Error creating user:', error);
             throw error;
@@ -64,9 +68,22 @@ class UsersModel {
     async updateUserData(u_id, content) {
         try {
             const userRef = doc(db, 'accounts', u_id);
-            await updateDoc(userRef, content);
+            
+            const updateContent = {
+                ...content,
+                u_updatedAt: new Date()
+            };
+            
+            await updateDoc(userRef, updateContent);
+            
+            const updatedDoc = await getDoc(userRef);
+            return {
+                id: updatedDoc.id,
+                ...updatedDoc.data()
+            };
         } catch (error) {
-            console.error(error);
+            console.error("Update user error:", error);
+            throw new Error("Failed to update user data");
         }
     }
 
