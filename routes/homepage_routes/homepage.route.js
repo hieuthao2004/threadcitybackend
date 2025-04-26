@@ -3,26 +3,49 @@ import authorization from '../../middleware/authorization.js';
 import PostsModel from '../../models/PostsModel.js';
 import UsersModel from '../../models/UsersModel.js';
 import NotificationsModel from '../../models/NotificationsModel.js';
+import index from '../../services/algolia.js';
 
 const router = express.Router();
 const model = new PostsModel();
 const userModel = new UsersModel();
 const notificationsModel = new NotificationsModel();
 
+router.get("/search_posts", async (req, res) => {
+    const { query } = req.query;
+    try {
+        const { hits } = await index.search(query, {
+            attributesToRetrieve: ['p_content', 'p_creater', 'p_create_at', 'p_image_url'],
+            hitsPerPage: 10
+        });
+
+        return res.status(200).json(hits);
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: "Error searching posts" });
+    }
+});
+
+
 // CRUD post
 router.post("/create_post", authorization, async (req, res) => {
     const userID = req.userId;
     const { content } = req.body;
-    const postData = {
-        u_id: userID,
-        p_creater: await userModel.getUsername(userID),
-        p_content: content,
-        p_create_at: new Date(),
-        p_is_visible: true,
-        p_image_url: "",
-    };
+    
     try {
-        await model.createPost(postData);
+        const postData = {
+            u_id: userID,
+            p_creater: await userModel.getUsername(userID),
+            p_content: content,
+            p_create_at: new Date(),
+            p_is_visible: true,
+            p_image_url: "",
+        };
+        const post = await model.createPost(postData);
+        await index.saveObject({
+            objectID: post.id,
+            ...postData
+        });
+        
         return res.status(200).json({ message: "Post created successfully" });
     } catch (error) {
         console.error(error);
@@ -62,7 +85,15 @@ router.put("/posts/:p_id", authorization, async (req, res) => {
     const { newContent } = req.body;
 
     try {
-        await model.updatePost(user, p_id, newContent);
+        const updatedPost = await model.updatePost(user, p_id, newContent);
+        await index.saveObject({
+            objectID: updatedPost.id, 
+            p_content: updatedPost.p_content,
+            p_updateAt: updatedPost.p_updateAt, 
+            p_is_visible: true, 
+            p_image_url: "" 
+        });
+
         return res.status(200).json({ msg: "Updated post!" });
     } catch (error) {
         console.error("Update post error:", error);
@@ -94,7 +125,11 @@ router.put("/posts/:p_id/softdelete", authorization, async (req, res) => {
     
 
     try {
-        await model.softDeletePost(p_id, userId);
+        const post = await model.softDeletePost(p_id, userId);
+        await index.saveObject({
+            objectID: post.id,
+            ...updatedPostData
+        });
         return res.status(200).json({ msg: "Post deleted!" });
     } catch (error) {
         console.error("Error deleting post:", error);
@@ -306,7 +341,7 @@ router.delete("/posts/:p_id/unreposted", authorization, async (req, res) => {
     const { p_id } = req.params;
 
     try {
-        await model.deleteRepost(userID, p_id);
+        await model.deleteRepost(userId, p_id);
         const postOwner = await model.getPostOwner(p_id);
         await notificationsModel.deleteNotification(userId, postOwner, p_id, 'repost');
         return res.status(200).json({ msg: "Delete repost" });
