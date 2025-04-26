@@ -40,5 +40,14 @@ export const EVENTS = {
     FOLLOW_USER: 'follow_user',
     UNFOLLOW_USER: 'unfollow_user',
     GET_ONLINE_FOLLOWING: 'get_online_following',
-    ONLINE_FOLLOWING: 'online_following'
-  };
+    ONLINE_FOLLOWING: 'online_following',
+
+    // Image-related events
+    UPLOAD_AVATAR: 'upload_avatar',
+    AVATAR_UPLOADED: 'avatar_uploaded',
+    UPLOAD_POST_IMAGE: 'upload_post_image',
+    POST_IMAGE_UPLOADED: 'post_image_uploaded',
+
+    // Error
+    Error: 'error',
+};

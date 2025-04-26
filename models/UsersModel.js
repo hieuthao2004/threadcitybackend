@@ -212,6 +212,19 @@ class UsersModel {
             throw error;
         }
     }
+
+    async updateAvatar(userId, imageUrl) {
+        try {
+            const userRef = doc(db, 'accounts', userId);
+            await updateDoc(userRef, {
+                u_avatar: imageUrl
+            });
+            return true;
+        } catch (error) {
+            console.error("Error updating avatar:", error);
+            throw error;
+        }
+    }
 }
 
 export default UsersModel;
