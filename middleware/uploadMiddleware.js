@@ -1,5 +1,5 @@
 import multer from 'multer';
-import { uploadBufferToCloudinary } from '../utils/cloudinaryUploader.js';
+import { uploadBufferToCloudinary } from '../middleware/uploadImage.js';
 
 const upload = multer({ storage: multer.memoryStorage() });
 
