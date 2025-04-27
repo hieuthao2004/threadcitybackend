@@ -29,33 +29,46 @@ router.get("/profile/@:username", async (req, res) => {
 router.put("/profile/@:username", authorization, async (req, res) => {
     const userID = req.userId;
     const { username } = req.params;
-    const updateData = req.body; 
+    const { fullname, bio, email } = req.body; // Extract specific fields
     
     try {
+        // Check if user is authorized to edit this profile
         const currentUsername = await model.getUsername(userID);
         if (currentUsername !== username) {
             return res.status(403).json({ msg: "Unauthorized to edit this profile" });
         }
+
+        // Create update data object with proper field names
+        const updateData = {
+            u_fullname: fullname,
+            u_bio: bio,
+            u_email: email
+        };
+
+        // Update user data
         await model.updateUserData(userID, updateData);
         
+        // Get updated user data
         const updatedUser = await model.getUserById(userID);
         
+        // Update search index
         await usersIndex.partialUpdateObject({
             objectID: userID,
-            ...updateData,
             username: updatedUser.u_username,
             fullname: updatedUser.u_fullname,
-            avatar: updatedUser.u_avatar,
-            bio: updatedUser.u_bio
+            bio: updatedUser.u_bio,
+            email: updatedUser.u_email
         });
 
+        // Return updated user data
         return res.status(200).json({ 
             msg: "Profile updated successfully",
-            user: {
-                username: updatedUser.u_username,
-                fullname: updatedUser.u_fullname,
-                avatar: updatedUser.u_avatar,
-                bio: updatedUser.u_bio
+            userData: {
+                u_username: updatedUser.u_username,
+                u_fullname: updatedUser.u_fullname,
+                u_bio: updatedUser.u_bio,
+                u_email: updatedUser.u_email,
+                u_avatar: updatedUser.u_avatar
             }
         });
 

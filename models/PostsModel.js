@@ -347,7 +347,18 @@ class PostsModel {
                 where('post_id', '==', p_id)
             );
             const snapshot = await getDocs(q);
-            return !snapshot.empty;
+            
+            // Return both the status and the save document if it exists
+            if (!snapshot.empty) {
+                return {
+                    isSaved: true,
+                    savedDoc: {
+                        id: snapshot.docs[0].id,
+                        ...snapshot.docs[0].data()
+                    }
+                };
+            }
+            return { isSaved: false };
         } catch (error) {
             console.error("Error when checking saved post:", error);
             throw error;
@@ -356,8 +367,8 @@ class PostsModel {
     
     async savePost(username, p_id) {
         try {
-            const isPostSaved = await this.isSaved(username, p_id);
-            if (isPostSaved) {
+            const saveCheck = await this.isSaved(username, p_id);
+            if (saveCheck.isSaved) {
                 return { isPostSaved: true };
             }
     
@@ -368,7 +379,11 @@ class PostsModel {
             };
     
             const snapdoc = await addDoc(collection(db, 'savedposts'), content);
-            return { isPostSaved: false, id: snapdoc.id };
+            return { 
+                isPostSaved: false, 
+                id: snapdoc.id,
+                saveDate: content.saveDate
+            };
         } catch (error) {
             console.error("Error when saving post:", error);
             throw error;
@@ -398,11 +413,17 @@ class PostsModel {
     
     async deleteSavePost(username, p_id) {
         try {
-            const getSavePostId = await this.getSavePost(username, p_id);
-            const savedPostRef = doc(db, 'savedposts', getSavePostId.savePostId);
+            const saveCheck = await this.isSaved(username, p_id);
+            if (!saveCheck.isSaved) {
+                return false;
+            }
+
+            const savedPostRef = doc(db, 'savedposts', saveCheck.savedDoc.id);
             await deleteDoc(savedPostRef);
+            return true;
         } catch (error) {
-            console.error("Error when deleting saved post");
+            console.error("Error when deleting saved post:", error);
+            throw error;
         }
     }
 

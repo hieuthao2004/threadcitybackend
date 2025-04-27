@@ -1,5 +1,6 @@
 import express from 'express';
 import authorization from '../../middleware/authorization.js';
+import uploadImageMiddleware from '../../middleware/uploadMiddleware.js';  // Import the middleware
 import PostsModel from '../../models/PostsModel.js';
 import UsersModel from '../../models/UsersModel.js';
 import NotificationsModel from '../../models/NotificationsModel.js';
@@ -45,68 +46,8 @@ router.get("/searchs_users", async (req, res) => {
 });
 
 // CRUD post
-router.post("/create_post", authorization, async (req, res) => {
-    console.log('Request body:', req.body);
-    const userID = req.userId;
-    const { content } = req.body;
-    
-    try {
-        if (!content || content.trim().length === 0) {
-            console.log('Content validation failed');
-            return res.status(400).json({ 
-                message: "Content cannot be empty" 
-            });
-        }
-
-        const postData = {
-            u_id: userID,
-            p_creater: await userModel.getUsername(userID),
-            p_content: content.trim(),
-            p_create_at: new Date(),
-            p_is_visible: true,
-            p_image_url: "",
-        };
-
-        console.log('Attempting to create post with data:', postData);
-        const post = await model.createPost(postData);
-        console.log('Created post:', post);
-        
-        if (!post) {
-            console.log('Post creation failed - no post returned');
-            return res.status(500).json({ 
-                message: "Failed to create post" 
-            });
-        }
-
-        const objectID = post.id || `post_${Date.now()}`;
-        console.log('Generated objectID:', objectID);
-
-        try {
-            await index.saveObject({
-                objectID,
-                ...postData,
-                id: objectID
-            });
-            console.log('Saved to Algolia successfully');
-        } catch (algoliaError) {
-            console.error('Algolia save error:', algoliaError);
-        }
-        
-        return res.status(200).json({ 
-            message: "Post created successfully",
-            post: {
-                id: objectID,
-                ...postData
-            }
-        });
-
-    } catch (error) {
-        console.error("Create post error:", error);
-        return res.status(500).json({ 
-            message: "Failed to create post",
-            error: error.message
-        });
-    }
+router.post("/create_post", authorization, uploadImageMiddleware, async (req, res) => {
+    // Access image URL via req.imageUrl
 });
 
 router.get("/posts", authorization, async (req, res) => {
@@ -358,6 +299,31 @@ router.post("/profile/posts/:p_id/saved", authorization, async (req, res) => {
     }
 });
 
+router.delete("/profile/posts/:p_id/unsaved", authorization, async (req, res) => {
+    try {
+        const userID = req.userId;
+        const username = await userModel.getUsername(userID);
+        const { p_id } = req.params;
+
+        const result = await model.deleteSavePost(username, p_id);
+
+        if (!result) {
+            return res.status(404).json({
+                msg: "Post was not saved",
+                unsaved: false
+            });
+        }
+
+        return res.status(200).json({
+            msg: "Post unsaved successfully",
+            unsaved: true
+        });
+    } catch (error) {
+        console.error("Error unsaving post:", error);
+        return res.status(500).json({ msg: "Failed to unsave post" });
+    }
+});
+
 // CD repost
 router.post("/posts/:p_id/reposted", authorization, async (req, res) => {
     const userId = req.userId;
@@ -365,7 +331,7 @@ router.post("/posts/:p_id/reposted", authorization, async (req, res) => {
     const { repostContent } = req.body;
 
     try {
-        const username = await model.getUsername(userId);
+        const username = await userModel.getUsername(userId);
         const isReposted = await model.isReposted(userId, p_id);
 
         if (isReposted) {
