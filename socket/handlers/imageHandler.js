@@ -7,7 +7,10 @@ const imageHandler = (io, socket) => {
   socket.on(EVENTS.UPLOAD_AVATAR, async (data) => {
     try {
       if (!socket.userId) {
-        return socket.emit(EVENTS.ERROR, { message: 'Authentication required' });
+        // Use socketService instead of direct socket emit
+        return socketService.emitToUser(socket.id, EVENTS.ERROR, { 
+          message: 'Authentication required' 
+        });
       }
 
       const { image, filename } = data;
@@ -20,8 +23,8 @@ const imageHandler = (io, socket) => {
       // Upload to Cloudinary
       const result = await uploadBufferToCloudinary(buffer, uniqueFilename);
       
-      // Return success with image URL
-      socket.emit(EVENTS.AVATAR_UPLOADED, { 
+      // Return success with image URL using socketService
+      socketService.emitToUser(socket.id, EVENTS.AVATAR_UPLOADED, { 
         success: true, 
         imageUrl: result.secure_url,
         publicId: result.public_id
@@ -29,7 +32,9 @@ const imageHandler = (io, socket) => {
       
     } catch (error) {
       console.error('Error uploading avatar:', error);
-      socket.emit(EVENTS.ERROR, { message: 'Failed to upload avatar' });
+      socketService.emitToUser(socket.id, EVENTS.ERROR, { 
+        message: 'Failed to upload avatar' 
+      });
     }
   });
 
@@ -37,7 +42,10 @@ const imageHandler = (io, socket) => {
   socket.on(EVENTS.UPLOAD_POST_IMAGE, async (data) => {
     try {
       if (!socket.userId) {
-        return socket.emit(EVENTS.ERROR, { message: 'Authentication required' });
+        // Use socketService instead of direct socket emit
+        return socketService.emitToUser(socket.id, EVENTS.ERROR, { 
+          message: 'Authentication required' 
+        });
       }
 
       const { image, postId } = data;
@@ -50,8 +58,8 @@ const imageHandler = (io, socket) => {
       // Upload to Cloudinary
       const result = await uploadBufferToCloudinary(buffer, uniqueFilename);
       
-      // Return success with image URL
-      socket.emit(EVENTS.POST_IMAGE_UPLOADED, { 
+      // Return success with image URL using socketService
+      socketService.emitToUser(socket.id, EVENTS.POST_IMAGE_UPLOADED, { 
         success: true, 
         imageUrl: result.secure_url,
         publicId: result.public_id,
@@ -60,7 +68,9 @@ const imageHandler = (io, socket) => {
       
     } catch (error) {
       console.error('Error uploading post image:', error);
-      socket.emit(EVENTS.ERROR, { message: 'Failed to upload post image' });
+      socketService.emitToUser(socket.id, EVENTS.ERROR, { 
+        message: 'Failed to upload post image' 
+      });
     }
   });
 };

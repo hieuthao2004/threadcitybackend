@@ -2,6 +2,7 @@ import { EVENTS } from '../events.js';
 import UsersModel from '../../models/UsersModel.js';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
+import socketService from '../../services/socket.service.js';
 
 dotenv.config();
 
@@ -23,7 +24,7 @@ const forgotPasswordHandler = (io, socket) => {
       const { email } = data;
       
       if (!email) {
-        return socket.emit(EVENTS.PASSWORD_RESET_REQUEST, { 
+        return socketService.emitToUser(socket.id, EVENTS.PASSWORD_RESET_REQUEST, { 
           success: false, 
           message: 'Email is required'
         });
@@ -34,7 +35,7 @@ const forgotPasswordHandler = (io, socket) => {
       
       if (!user) {
         // For security, don't reveal if email exists or not
-        return socket.emit(EVENTS.PASSWORD_RESET_REQUEST, { 
+        return socketService.emitToUser(socket.id, EVENTS.PASSWORD_RESET_REQUEST, { 
           success: true, 
           message: 'If your email is registered, you will receive reset instructions'
         });
@@ -65,14 +66,14 @@ const forgotPasswordHandler = (io, socket) => {
       
       await transporter.sendMail(mailOptions);
       
-      socket.emit(EVENTS.PASSWORD_RESET_REQUEST, { 
+      socketService.emitToUser(socket.id, EVENTS.PASSWORD_RESET_REQUEST, { 
         success: true, 
         message: 'If your email is registered, you will receive reset instructions'
       });
       
     } catch (error) {
       console.error('Error in password reset request:', error);
-      socket.emit(EVENTS.PASSWORD_RESET_REQUEST, { 
+      socketService.emitToUser(socket.id, EVENTS.PASSWORD_RESET_REQUEST, { 
         success: false, 
         message: 'An error occurred while processing your request'
       });
@@ -85,7 +86,7 @@ const forgotPasswordHandler = (io, socket) => {
       const { token } = data;
       
       if (!token) {
-        return socket.emit(EVENTS.TOKEN_VERIFICATION, { 
+        return socketService.emitToUser(socket.id, EVENTS.TOKEN_VERIFICATION, { 
           success: false, 
           message: 'Reset token is required' 
         });
@@ -95,13 +96,13 @@ const forgotPasswordHandler = (io, socket) => {
       const user = await usersModel.verifyPasswordResetToken(token);
       
       if (!user) {
-        return socket.emit(EVENTS.TOKEN_VERIFICATION, { 
+        return socketService.emitToUser(socket.id, EVENTS.TOKEN_VERIFICATION, { 
           success: false, 
           message: 'Invalid or expired reset token' 
         });
       }
       
-      socket.emit(EVENTS.TOKEN_VERIFICATION, { 
+      socketService.emitToUser(socket.id, EVENTS.TOKEN_VERIFICATION, { 
         success: true, 
         message: 'Token verified successfully',
         username: user.u_username
@@ -109,7 +110,7 @@ const forgotPasswordHandler = (io, socket) => {
       
     } catch (error) {
       console.error('Error verifying reset token:', error);
-      socket.emit(EVENTS.TOKEN_VERIFICATION, { 
+      socketService.emitToUser(socket.id, EVENTS.TOKEN_VERIFICATION, { 
         success: false, 
         message: 'Failed to verify reset token' 
       });
@@ -122,7 +123,7 @@ const forgotPasswordHandler = (io, socket) => {
       const { token, newPassword } = data;
       
       if (!token || !newPassword) {
-        return socket.emit(EVENTS.PASSWORD_RESET, { 
+        return socketService.emitToUser(socket.id, EVENTS.PASSWORD_RESET, { 
           success: false, 
           message: 'Token and new password are required' 
         });
@@ -130,7 +131,7 @@ const forgotPasswordHandler = (io, socket) => {
       
       // Password validation
       if (newPassword.length < 8) {
-        return socket.emit(EVENTS.PASSWORD_RESET, { 
+        return socketService.emitToUser(socket.id, EVENTS.PASSWORD_RESET, { 
           success: false, 
           message: 'Password must be at least 8 characters long' 
         });
@@ -140,7 +141,7 @@ const forgotPasswordHandler = (io, socket) => {
       const user = await usersModel.verifyPasswordResetToken(token);
       
       if (!user) {
-        return socket.emit(EVENTS.PASSWORD_RESET, { 
+        return socketService.emitToUser(socket.id, EVENTS.PASSWORD_RESET, { 
           success: false, 
           message: 'Invalid or expired reset token' 
         });
@@ -149,7 +150,7 @@ const forgotPasswordHandler = (io, socket) => {
       // Reset the password using model method
       await usersModel.resetPassword(user.id, newPassword);
       
-      socket.emit(EVENTS.PASSWORD_RESET, { 
+      socketService.emitToUser(socket.id, EVENTS.PASSWORD_RESET, { 
         success: true, 
         message: 'Password has been reset successfully' 
       });
