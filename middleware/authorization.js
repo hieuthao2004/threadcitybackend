@@ -1,17 +1,30 @@
-import jwt from "jsonwebtoken";
+import jwt from 'jsonwebtoken';
 
 const authorization = async (req, res, next) => {
-    const token = req.cookies.access_token;
-    if (!token) {
-        return res.sendStatus(403);
-    }
     try {
-        const data = jwt.verify(token, "YOUR_SECRET_KEY");
-        req.userId = data.id;
-        req.userRole = data.role;
-        return next();
-    } catch {
-        return res.sendStatus(403);
+        const token = req.cookies.access_token;
+        if (!token) {
+            return res.status(401).json({
+                success: false,
+                message: "Not authenticated"
+            });
+        }
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        
+        console.log('Decoded token:', decoded);
+
+        req.userId = decoded.id;
+        req.userUsername = decoded.username;
+        req.userRole = decoded.role;
+
+        next();
+    } catch (error) {
+        console.error('Authorization error:', error);
+        return res.status(403).json({
+            success: false,
+            message: "Invalid token"
+        });
     }
 };
 

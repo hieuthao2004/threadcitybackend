@@ -48,8 +48,21 @@ router.post("/register", async (req, res) => {
         });
 
         if (user) {
-            const token = jwt.sign({id: user.id, role: user.role}, "YOUR_SECRET_KEY");
-            return res.status(200).cookie("access_token", token, { httpOnly: true, secure: process.env.NODE_ENV === "production" }).json({msg: "Created account!"});
+            const token = jwt.sign(
+                {
+                    id: user.id,
+                    role: user.u_role,
+                    username: user.u_username
+                },
+                process.env.JWT_SECRET,
+            );
+            
+            return res.status(200)
+                .cookie("access_token", token, {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === "production"
+                })
+                .json({msg: "Created account!"});
         } else {
             return res.status(401).json({ message: "Invalid credentials" });
         }

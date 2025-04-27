@@ -14,27 +14,73 @@ router.post("/auth", async (req, res) => {
         if (user) {
             const isMatched = await bcrypt.compare(password, user.u_password);
             if (isMatched) {                
-                const token = jwt.sign({id: user.id, role: user.u_role}, "YOUR_SECRET_KEY");
+                const token = jwt.sign(
+                    {
+                        id: user.id, 
+                        role: user.u_role, 
+                        username: user.u_username
+                    }, 
+                    process.env.JWT_SECRET,
+                    { expiresIn: process.env.JWT_EXPIRES_IN }
+                );
+                
                 await model.loginStatus(user.id);
-                return res.cookie("access_token", token, { httpOnly: true, secure: process.env.NODE_ENV === "production" }).status(200).json({ msg: "Logged in!" });
-            } else {
-                return res.status(401).json({ message: "Invalid credentials" });
+                
+                return res
+                    .cookie("access_token", token, { 
+                        httpOnly: true, 
+                        secure: process.env.NODE_ENV === "production",
+                        sameSite: 'strict'
+                    })
+                    .status(200)
+                    .json({ 
+                        success: true,
+                        message: "Logged in successfully" 
+                    });
             }
-        } else {
-            return res.status(401).json({ message: "Invalid credentials" });
         }
+        
+        return res.status(401).json({ 
+            success: false,
+            message: "Invalid username or password" 
+        });
+        
     } catch (error) {
-        return res.status(500).json({ message: "Server Error!" });
+        console.error('Login error:', error);
+        return res.status(500).json({ 
+            success: false,
+            message: "Server Error!" 
+        });
     }
 });
 
 router.get("/logout", authorization, async (req, res) => {
-    const token = req.cookies.access_token;
-    if (token) {     
-        const userId = jwt.verify(token, "YOUR_SECRET_KEY").id;   
-        await model.logoutStatus(userId);
-        return res.clearCookie("access_token").status(200).json({msg: "Logged out!"})
+    try {
+        const token = req.cookies.access_token;
+        if (!token) {
+            return res.status(401).json({
+                success: false,
+                message: "Not authenticated"
+            });
+        }
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        await model.logoutStatus(decoded.id);
+        
+        return res
+            .clearCookie("access_token")
+            .status(200)
+            .json({
+                success: true,
+                message: "Logged out successfully"
+            });
+    } catch (error) {
+        console.error('Logout error:', error);
+        return res.status(500).json({
+            success: false,
+            message: "Error during logout"
+        });
     }
-})
+});
 
 export default router;

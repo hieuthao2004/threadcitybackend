@@ -35,7 +35,7 @@ router.get("/searchs_users", async (req, res) => {
         const { hits } = await usersIndex.search(query, {
             attributesToRetrieve: ['username', 'u_fullname', 'avatar', 'bio'],
             hitsPerPage: 10,
-            filters: 'u_isBanned: false'
+            // filters: 'u_isBanned: false'
         });
 
         return res.status(200).json(hits);

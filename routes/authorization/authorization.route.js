@@ -7,6 +7,7 @@ router.get("/protected", authorization , (req, res) => {
         msg: "Good",
         user: {
             id: req.userId,
+            username: req.userUsername,
             role: req.userRole
         }
     });
