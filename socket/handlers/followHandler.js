@@ -11,7 +11,9 @@ const followHandler = (io, socket) => {
     socket.on(EVENTS.FOLLOW_USER, async (data) => {
         try {
             if (!socket.userId) {
-                return socket.emit('error', { message: 'Authentication required' });
+                return socketService.emitToUser(socket.id, EVENTS.ERROR, { 
+                    message: 'Authentication required' 
+                });
             }
 
             const { targetId, targetUsername } = data;
@@ -20,7 +22,7 @@ const followHandler = (io, socket) => {
             // Check if already following
             const isAlreadyFollowing = await followsModel.isFollowed(userId, targetId);
             if (isAlreadyFollowing) {
-                return socket.emit(EVENTS.FOLLOW_USER, { 
+                return socketService.emitToUser(socket.id, EVENTS.FOLLOW_USER, { 
                     success: false, 
                     error: 'Already following this user' 
                 });
@@ -29,7 +31,7 @@ const followHandler = (io, socket) => {
             // Follow the user
             await followsModel.followPeople(userId, targetId);
             
-            // Create notification
+            // Get follower username for notification
             const followerUsername = await usersModel.getUsername(userId);
             
             // Create and send notification using enhanced method
@@ -38,19 +40,20 @@ const followHandler = (io, socket) => {
                 senderId: userId,
                 type: 'follow',
                 postId: null,
-                message: `${followerUsername} started following you`,
-                createdAt: new Date()
+                message: `${followerUsername} started following you`
             });
             
             // Emit success response
-            socket.emit(EVENTS.FOLLOW_USER, { 
+            socketService.emitToUser(socket.id, EVENTS.FOLLOW_USER, { 
                 success: true,
                 following: targetUsername
             });
             
         } catch (error) {
             console.error('Error processing follow request:', error);
-            socket.emit('error', { message: 'Failed to process follow request' });
+            socketService.emitToUser(socket.id, EVENTS.ERROR, { 
+                message: 'Failed to process follow request' 
+            });
         }
     });
     
@@ -58,7 +61,9 @@ const followHandler = (io, socket) => {
     socket.on(EVENTS.UNFOLLOW_USER, async (data) => {
         try {
             if (!socket.userId) {
-                return socket.emit('error', { message: 'Authentication required' });
+                return socketService.emitToUser(socket.id, EVENTS.ERROR, { 
+                    message: 'Authentication required' 
+                });
             }
 
             const { targetId } = data;
@@ -67,7 +72,7 @@ const followHandler = (io, socket) => {
             // Check if following
             const isFollowing = await followsModel.isFollowed(userId, targetId);
             if (!isFollowing) {
-                return socket.emit(EVENTS.UNFOLLOW_USER, { 
+                return socketService.emitToUser(socket.id, EVENTS.UNFOLLOW_USER, { 
                     success: false, 
                     error: 'Not following this user' 
                 });
@@ -80,13 +85,15 @@ const followHandler = (io, socket) => {
             await socketService.deleteNotification(userId, targetId, null, 'follow');
             
             // Emit success response
-            socket.emit(EVENTS.UNFOLLOW_USER, { 
+            socketService.emitToUser(socket.id, EVENTS.UNFOLLOW_USER, { 
                 success: true
             });
             
         } catch (error) {
             console.error('Error processing unfollow request:', error);
-            socket.emit('error', { message: 'Failed to process unfollow request' });
+            socketService.emitToUser(socket.id, EVENTS.ERROR, { 
+                message: 'Failed to process unfollow request' 
+            });
         }
     });
     
@@ -94,14 +101,18 @@ const followHandler = (io, socket) => {
     socket.on(EVENTS.GET_ONLINE_FOLLOWING, async () => {
         try {
             if (!socket.userId) {
-                return socket.emit('error', { message: 'Authentication required' });
+                return socketService.emitToUser(socket.id, EVENTS.ERROR, { 
+                    message: 'Authentication required' 
+                });
             }
             
             // First, get all users the current user follows
             const following = await followsModel.getFollowing(socket.userId);
             
             if (following.length === 0) {
-                return socket.emit(EVENTS.ONLINE_FOLLOWING, { onlineUsers: [] });
+                return socketService.emitToUser(socket.id, EVENTS.ONLINE_FOLLOWING, { 
+                    onlineUsers: [] 
+                });
             }
             
             // Get all users
@@ -115,11 +126,15 @@ const followHandler = (io, socket) => {
                 username: user.u_username
             }));
             
-            socket.emit(EVENTS.ONLINE_FOLLOWING, { onlineUsers: onlineFollowing });
+            socketService.emitToUser(socket.id, EVENTS.ONLINE_FOLLOWING, { 
+                onlineUsers: onlineFollowing 
+            });
             
         } catch (error) {
             console.error('Error getting online following:', error);
-            socket.emit('error', { message: 'Failed to get online following users' });
+            socketService.emitToUser(socket.id, EVENTS.ERROR, { 
+                message: 'Failed to get online following users' 
+            });
         }
     });
 };

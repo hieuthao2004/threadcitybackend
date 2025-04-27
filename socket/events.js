@@ -48,6 +48,13 @@ export const EVENTS = {
     UPLOAD_POST_IMAGE: 'upload_post_image',
     POST_IMAGE_UPLOADED: 'post_image_uploaded',
 
+    //Forgot password
+    REQUEST_PASSWORD_RESET: 'request_password_reset',
+    PASSWORD_RESET_REQUEST: 'password_reset_request',
+    VERIFY_RESET_TOKEN: 'verify_reset_token',
+    TOKEN_VERIFICATION: 'token_verification',
+    RESET_PASSWORD: 'reset_password',
+    PASSWORD_RESET: 'password_reset',
     // Error
-    Error: 'error',
+    ERROR: 'error',
 };

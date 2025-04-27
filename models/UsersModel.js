@@ -1,5 +1,7 @@
 import { addDoc, collection, doc, getDoc, getDocs, query, updateDoc, where } from "firebase/firestore";
 import { db } from "../services/db.service.js";
+import crypto from 'crypto';
+import bcrypt from 'bcrypt';
 
 class UsersModel {
     async createUser(userData) {
@@ -239,6 +241,115 @@ class UsersModel {
             return true;
         } catch (error) {
             console.error("Error updating avatar:", error);
+            throw error;
+        }
+    }
+
+    /**
+     * Find a user by their email address
+     */
+    async findUserByEmail(email) {
+        try {
+            const userRef = collection(db, 'accounts');
+            const q = query(userRef, where("u_email", "==", email));
+            const snapshot = await getDocs(q);
+            return snapshot.empty ? null : {
+                id: snapshot.docs[0].id,
+                ...snapshot.docs[0].data()
+            };
+        } catch (error) {
+            console.error('Error finding user by email:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Generate and store password reset token for a user
+     */
+    async createPasswordResetToken(userId) {
+        try {
+            // Generate a secure random token
+            const resetToken = crypto.randomBytes(32).toString('hex');
+            
+            // Create token hash to store in the database
+            const resetTokenHash = crypto
+                .createHash('sha256')
+                .update(resetToken)
+                .digest('hex');
+            
+            // Set expiration time (1 hour from now)
+            const resetTokenExpires = new Date();
+            resetTokenExpires.setHours(resetTokenExpires.getHours() + 1);
+            
+            // Update user with the reset token and expiry
+            const userRef = doc(db, 'accounts', userId);
+            await updateDoc(userRef, {
+                passwordResetToken: resetTokenHash,
+                passwordResetExpires: resetTokenExpires
+            });
+            
+            // Return the unhashed token to be sent via email
+            return resetToken;
+        } catch (error) {
+            console.error('Error creating password reset token:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Verify if a reset token is valid and not expired
+     */
+    async verifyPasswordResetToken(resetToken) {
+        try {
+            // Create hash of the provided token to compare with stored hash
+            const resetTokenHash = crypto
+                .createHash('sha256')
+                .update(resetToken)
+                .digest('hex');
+            
+            // Find user with this token
+            const userRef = collection(db, 'accounts');
+            const q = query(
+                userRef, 
+                where("passwordResetToken", "==", resetTokenHash),
+                where("passwordResetExpires", ">", new Date())
+            );
+            const snapshot = await getDocs(q);
+            
+            if (snapshot.empty) {
+                return null;
+            }
+            
+            // Return the user if token is valid
+            return {
+                id: snapshot.docs[0].id,
+                ...snapshot.docs[0].data()
+            };
+        } catch (error) {
+            console.error('Error verifying reset token:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Reset the user's password
+     */
+    async resetPassword(userId, newPassword) {
+        try {
+            // Hash the new password
+            const hashedPassword = await bcrypt.hash(newPassword, 10);
+            
+            // Update user with new password and remove reset token fields
+            const userRef = doc(db, 'accounts', userId);
+            await updateDoc(userRef, {
+                u_password: hashedPassword,
+                passwordResetToken: null,
+                passwordResetExpires: null
+            });
+            
+            return true;
+        } catch (error) {
+            console.error('Error resetting password:', error);
             throw error;
         }
     }

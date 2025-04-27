@@ -11,6 +11,7 @@ import authorizationRoute from './routes/authorization/authorization.route.js';
 import homepageRoute from './routes/homepage_routes/homepage.route.js';
 import profileRoute from './routes/user_routes/profile.route.js';
 import followsRoute from './routes/user_routes/follows.route.js';
+import passwordResetRoute from './routes/authentication/passwordReset.route.js';
 
 const port = 3001;
 const app = express();
@@ -42,6 +43,7 @@ app.use('/api', authorizationRoute);
 app.use('/api', homepageRoute);
 app.use('/api', profileRoute);
 app.use('/api', followsRoute);
+app.use("/api", passwordResetRoute);
 
 // Start server
 server.listen(port, () => {
