@@ -11,7 +11,7 @@ const followHandler = (io, socket) => {
     socket.on(EVENTS.FOLLOW_USER, async (data) => {
         try {
             if (!socket.userId) {
-                return socket.emit('error', { message: 'Authentication required' });
+                return socket.emit(EVENTS.ERROR, { message: 'Authentication required' });
             }
 
             const { targetId, targetUsername } = data;
@@ -50,7 +50,7 @@ const followHandler = (io, socket) => {
             
         } catch (error) {
             console.error('Error processing follow request:', error);
-            socket.emit('error', { message: 'Failed to process follow request' });
+            socket.emit(EVENTS.ERROR, { message: 'Failed to process follow request' });
         }
     });
     
@@ -58,7 +58,7 @@ const followHandler = (io, socket) => {
     socket.on(EVENTS.UNFOLLOW_USER, async (data) => {
         try {
             if (!socket.userId) {
-                return socket.emit('error', { message: 'Authentication required' });
+                return socket.emit(EVENTS.ERROR, { message: 'Authentication required' });
             }
 
             const { targetId } = data;
@@ -86,7 +86,7 @@ const followHandler = (io, socket) => {
             
         } catch (error) {
             console.error('Error processing unfollow request:', error);
-            socket.emit('error', { message: 'Failed to process unfollow request' });
+            socket.emit(EVENTS.ERROR, { message: 'Failed to process unfollow request' });
         }
     });
     
@@ -94,7 +94,7 @@ const followHandler = (io, socket) => {
     socket.on(EVENTS.GET_ONLINE_FOLLOWING, async () => {
         try {
             if (!socket.userId) {
-                return socket.emit('error', { message: 'Authentication required' });
+                return socket.emit(EVENTS.ERROR, { message: 'Authentication required' });
             }
             
             // First, get all users the current user follows
@@ -119,7 +119,7 @@ const followHandler = (io, socket) => {
             
         } catch (error) {
             console.error('Error getting online following:', error);
-            socket.emit('error', { message: 'Failed to get online following users' });
+            socket.emit(EVENTS.ERROR, { message: 'Failed to get online following users' });
         }
     });
 };

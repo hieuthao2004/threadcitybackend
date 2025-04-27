@@ -11,7 +11,7 @@ const notifiHandler = (io, socket) => {
     socket.on(EVENTS.GET_NOTIFICATIONS, async () => {
         try {
             if (!socket.userId) {
-                return socket.emit('error', { message: 'Authentication required' });
+                return socket.emit(EVENTS.ERROR, { message: 'Authentication required' });
             }
 
             const notifications = await notificationsModel.getAllNotifications(socket.userId);
@@ -20,7 +20,7 @@ const notifiHandler = (io, socket) => {
             socket.emit(EVENTS.GET_NOTIFICATIONS, notifications);
         } catch (error) {
             console.error('Error fetching notifications:', error);
-            socket.emit('error', { message: 'Failed to fetch notifications' });
+            socket.emit(EVENTS.ERROR, { message: 'Failed to fetch notifications' });
         }
     });
 
@@ -28,7 +28,7 @@ const notifiHandler = (io, socket) => {
     socket.on('send_notification', async (data) => {
         try {
             if (!socket.userId || socket.userRole !== 'admin') {
-                return socket.emit('error', { message: 'Unauthorized' });
+                return socket.emit(EVENTS.ERROR, { message: 'Unauthorized' });
             }
 
             const { targetId, type, message, relatedId } = data;
@@ -57,7 +57,7 @@ const notifiHandler = (io, socket) => {
             socket.emit('notification_sent', { success: true });
         } catch (error) {
             console.error('Error sending notification:', error);
-            socket.emit('error', { message: 'Failed to send notification' });
+            socket.emit(EVENTS.ERROR, { message: 'Failed to send notification' });
         }
     });
 };

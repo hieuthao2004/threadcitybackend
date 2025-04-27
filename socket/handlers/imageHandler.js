@@ -7,7 +7,7 @@ const imageHandler = (io, socket) => {
   socket.on(EVENTS.UPLOAD_AVATAR, async (data) => {
     try {
       if (!socket.userId) {
-        return socket.emit('error', { message: 'Authentication required' });
+        return socket.emit(EVENTS.ERROR, { message: 'Authentication required' });
       }
 
       const { image, filename } = data;
@@ -29,7 +29,7 @@ const imageHandler = (io, socket) => {
       
     } catch (error) {
       console.error('Error uploading avatar:', error);
-      socket.emit('error', { message: 'Failed to upload avatar' });
+      socket.emit(EVENTS.ERROR, { message: 'Failed to upload avatar' });
     }
   });
 
@@ -37,7 +37,7 @@ const imageHandler = (io, socket) => {
   socket.on(EVENTS.UPLOAD_POST_IMAGE, async (data) => {
     try {
       if (!socket.userId) {
-        return socket.emit('error', { message: 'Authentication required' });
+        return socket.emit(EVENTS.ERROR, { message: 'Authentication required' });
       }
 
       const { image, postId } = data;
@@ -60,7 +60,7 @@ const imageHandler = (io, socket) => {
       
     } catch (error) {
       console.error('Error uploading post image:', error);
-      socket.emit('error', { message: 'Failed to upload post image' });
+      socket.emit(EVENTS.ERROR, { message: 'Failed to upload post image' });
     }
   });
 };

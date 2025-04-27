@@ -4,7 +4,8 @@ import postHandler from './handlers/postHandler.js';
 import notifiHandler from './handlers/notifiHandler.js';
 import authenticationHandler from './handlers/authenticationHandler.js';
 import followHandler from './handlers/followHandler.js';
-import imageHandler from './handlers/imageHandler.js'; // Add this line
+import imageHandler from './handlers/imageHandler.js';
+import forgotPasswordHandler from './handlers/forgotPasswordHandler.js'; 
 import socketAuthorization from '../middleware/socketAuthorization.js';
 import socketService from '../services/socket.service.js';
 
@@ -25,7 +26,8 @@ const initializeSocket = (io) => {
       notifiHandler(io, socket);
       authenticationHandler(io, socket);
       followHandler(io, socket);
-      imageHandler(io, socket); // Add this line
+      imageHandler(io, socket);
+      forgotPasswordHandler(io, socket);
         
       // Handle disconnection
       socket.on(EVENTS.DISCONNECT, () => {

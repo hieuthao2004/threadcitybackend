@@ -1,7 +1,5 @@
 import express from 'express';
 import UsersModel from '../../models/UsersModel.js';
-import crypto from 'crypto';
-import bcrypt from 'bcrypt';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 
@@ -19,43 +17,37 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-// Step 1: Request password reset (provide username and email)
-router.post('/forgot-password', async (req, res) => {
+// Step 1: Request password reset (provide email)
+router.post('/forgot_password', async (req, res) => {
     try {
-        const { username, email } = req.body;
+        const { email } = req.body;
         
-        if (!username || !email) {
+        if (!email) {
             return res.status(400).json({ 
                 success: false, 
-                message: 'Please provide both username and email' 
+                message: 'Email is required' 
             });
         }
         
-        // Find user by username
-        const user = await usersModel.findUser(username);
+        // Find user by email using the model method
+        const user = await usersModel.findUserByEmail(email);
         
         if (!user) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'User not found' 
+            // For security reasons, don't reveal if email exists or not
+            return res.status(200).json({ 
+                success: true, 
+                message: 'If your email is registered, you will receive reset instructions' 
             });
         }
         
-        // Verify email matches
-        if (user.u_email !== email) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Email does not match our records for this username' 
-            });
-        }
-        
-        // Generate reset token
+        // Generate reset token using the model method
         const resetToken = await usersModel.createPasswordResetToken(user.id);
         
-        // Create reset URL - For frontend to access
-        const resetURL = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+        // Create reset URL
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const resetURL = `${frontendUrl}/reset-password/${resetToken}`;
         
-        // Send email with reset link
+        // Send email
         const mailOptions = {
             from: `ThreadCity <${process.env.EMAIL_USER}>`,
             to: user.u_email,
@@ -75,7 +67,7 @@ router.post('/forgot-password', async (req, res) => {
         
         return res.status(200).json({ 
             success: true, 
-            message: 'Password reset link sent to your email' 
+            message: 'If your email is registered, you will receive reset instructions' 
         });
         
     } catch (error) {
@@ -88,7 +80,7 @@ router.post('/forgot-password', async (req, res) => {
 });
 
 // Step 2: Verify the reset token
-router.post('/verify-reset-token', async (req, res) => {
+router.post('/verify_reset_token', async (req, res) => {
     try {
         const { resetToken } = req.body;
         
@@ -99,7 +91,7 @@ router.post('/verify-reset-token', async (req, res) => {
             });
         }
         
-        // Verify token is valid and not expired
+        // Use the model method to verify the token
         const user = await usersModel.verifyPasswordResetToken(resetToken);
         
         if (!user) {
@@ -125,7 +117,7 @@ router.post('/verify-reset-token', async (req, res) => {
 });
 
 // Step 3: Reset the password
-router.post('/reset-password', async (req, res) => {
+router.post('/reset_password', async (req, res) => {
     try {
         const { resetToken, newPassword } = req.body;
         
@@ -144,7 +136,7 @@ router.post('/reset-password', async (req, res) => {
             });
         }
         
-        // Verify token is valid and not expired
+        // Verify token is valid and not expired using model method
         const user = await usersModel.verifyPasswordResetToken(resetToken);
         
         if (!user) {
@@ -154,7 +146,7 @@ router.post('/reset-password', async (req, res) => {
             });
         }
         
-        // Reset the password
+        // Reset the password using model method
         await usersModel.resetPassword(user.id, newPassword);
         
         return res.status(200).json({ 

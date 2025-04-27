@@ -41,7 +41,7 @@ const postHandler = (io, socket) => {
         } 
         catch (error) {
             console.error('Error handling post creation:', error);
-            socket.emit('error', { message: 'Failed to create post' });
+            socket.emit(EVENTS.ERROR, { message: 'Failed to create post' });
           }
     });
 
@@ -61,7 +61,7 @@ const postHandler = (io, socket) => {
         } 
         catch (error) {
             console.error('Error updating post:', error);
-            socket.emit('error', { message: 'Failed to update post' });
+            socket.emit(EVENTS.ERROR, { message: 'Failed to update post' });
           }
     });
 
@@ -79,7 +79,7 @@ const postHandler = (io, socket) => {
         }
         catch (error) {
             console.error('Error deleting post:', error);
-            socket.emit('error', { message: 'Failed to delete post' });
+            socket.emit(EVENTS.ERROR, { message: 'Failed to delete post' });
         }
     });
 
@@ -115,7 +115,7 @@ const postHandler = (io, socket) => {
         } 
         catch (error) {
             console.error('Error handling post like:', error);
-            socket.emit('error', { message: 'Failed to like post' });
+            socket.emit(EVENTS.ERROR, { message: 'Failed to like post' });
         }
     });
 
@@ -144,7 +144,7 @@ const postHandler = (io, socket) => {
         } 
         catch (error) {
             console.error('Error handling post unlike:', error);
-            socket.emit('error', { message: 'Failed to unlike post' });
+            socket.emit(EVENTS.ERROR, { message: 'Failed to unlike post' });
         }
     });
 };
