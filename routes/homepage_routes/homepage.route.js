@@ -47,7 +47,70 @@ router.get("/searchs_users", async (req, res) => {
 
 // CRUD post
 router.post("/create_post", authorization, uploadImageMiddleware, async (req, res) => {
-    // Access image URL via req.imageUrl
+    console.log('Request body:', req.body);
+    const userID = req.userId;
+    const { content } = req.body;
+    const imageUrl = req.imageUrl || ""; // Get image URL from middleware
+    
+    try {
+        // Check if post has at least content or image
+        if ((!content || content.trim().length === 0) && !imageUrl) {
+            console.log('Validation failed: Post must have content or image');
+            return res.status(400).json({ 
+                message: "Post must contain either text content or an image" 
+            });
+        }
+
+        const postData = {
+            u_id: userID,
+            p_creater: await userModel.getUsername(userID),
+            p_content: content ? content.trim() : "",
+            p_create_at: new Date(),
+            p_is_visible: true,
+            p_image_url: imageUrl, // Add the image URL from middleware
+        };
+
+        console.log('Attempting to create post with data:', postData);
+        const post = await model.createPost(postData);
+        console.log('Created post:', post);
+        
+        if (!post) {
+            console.log('Post creation failed - no post returned');
+            return res.status(500).json({ 
+                message: "Failed to create post" 
+            });
+        }
+
+        const objectID = post.id || `post_${Date.now()}`;
+        console.log('Generated objectID:', objectID);
+
+        try {
+            // Include image URL in Algolia indexing
+            await index.saveObject({
+                objectID,
+                ...postData,
+                id: objectID
+            });
+            console.log('Saved to Algolia successfully');
+        } catch (algoliaError) {
+            console.error('Algolia save error:', algoliaError);
+        }
+        
+        return res.status(200).json({ 
+            message: "Post created successfully",
+            post: {
+                id: objectID,
+                ...postData
+            }
+        });
+
+    } catch (error) {
+        console.error("Create post error:", error);
+        return res.status(500).json({ 
+            message: "Failed to create post",
+            error: error.message
+        });
+    }
 });
 
 router.get("/posts", authorization, async (req, res) => {
