@@ -16,15 +16,28 @@ class PostsModel {
         }
     }
 
-    async createPost(postData) {
+    async createPost(postData, imageUrl = null) {
         try {
             const postRef = collection(db, 'posts');
-            const docRef = await addDoc(postRef, {
+            
+            // Create post data with timestamp
+            const postToCreate = {
                 ...postData,
                 p_create_at: new Date(),
-            });
-            return docRef.id;
-
+            };
+            
+            // Add image URL if provided
+            if (imageUrl) {
+                postToCreate.p_image_url = imageUrl;
+            }
+            
+            const docRef = await addDoc(postRef, postToCreate);
+            
+            // Return post ID and created post data for easier access
+            return {
+                id: docRef.id,
+                ...postToCreate
+            };
         } catch (error) {
             console.error('Error creating post', error);
             throw error;
