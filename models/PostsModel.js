@@ -35,11 +35,9 @@ class PostsModel {
         try {
             const postRef = collection(db, 'posts');
             const snapshot = await getDocs(postRef); 
-    
             if (snapshot.empty) {
                 return [];
             }
-    
             const posts = snapshot.docs.map(doc => ({
                 p_id: doc.id,
                 ...doc.data(),
@@ -47,7 +45,13 @@ class PostsModel {
     
             const hiddenPosts = await this.getHiddenPostsByUser(u_id);
     
-            return posts.filter(post => post.p_is_visible !== false && !hiddenPosts.includes(post.p_id));
+            return posts
+                .filter(post => post.p_is_visible !== false && !hiddenPosts.includes(post.p_id))
+                .sort((a, b) => {
+                    const dateA = a.p_create_at?.toDate?.() || new Date(a.p_create_at);
+                    const dateB = b.p_create_at?.toDate?.() || new Date(b.p_create_at);
+                    return dateB - dateA; 
+                });
         } catch (error) {
             console.error("Error in getAllPosts:", error);
             throw error;
@@ -230,10 +234,18 @@ class PostsModel {
                     ...doc.data()
                 }));
                 const hiddenComments = await this.getHiddenCommentsByUser(u_id, p_id);
-                return comments.filter(comment => !hiddenComments.includes(comment.cmt_id));
+                
+                return comments
+                    .filter(comment => !hiddenComments.includes(comment.cmt_id))
+                    .sort((a, b) => {
+                        const dateA = a.c_create_at?.toDate?.() || new Date(a.c_create_at);
+                        const dateB = b.c_create_at?.toDate?.() || new Date(b.c_create_at);
+                        return dateB - dateA;
+                    });
             }
         } catch (error) {
-            console.error(error);
+            console.error("Error getting comments:", error);
+            throw error;
         }
     }
 

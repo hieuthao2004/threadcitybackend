@@ -51,7 +51,6 @@ router.post("/create_post", authorization, async (req, res) => {
     const { content } = req.body;
     
     try {
-        // Validate content
         if (!content || content.trim().length === 0) {
             console.log('Content validation failed');
             return res.status(400).json({ 
@@ -79,11 +78,9 @@ router.post("/create_post", authorization, async (req, res) => {
             });
         }
 
-        // Generate a unique ID 
         const objectID = post.id || `post_${Date.now()}`;
         console.log('Generated objectID:', objectID);
 
-        // Add to Algolia
         try {
             await index.saveObject({
                 objectID,
@@ -93,7 +90,6 @@ router.post("/create_post", authorization, async (req, res) => {
             console.log('Saved to Algolia successfully');
         } catch (algoliaError) {
             console.error('Algolia save error:', algoliaError);
-            // Continue execution even if Algolia fails
         }
         
         return res.status(200).json({ 
