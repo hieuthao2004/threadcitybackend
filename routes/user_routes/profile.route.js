@@ -29,10 +29,9 @@ router.get("/profile/@:username", async (req, res) => {
 router.put("/profile/@:username", authorization, async (req, res) => {
     const userID = req.userId;
     const { username } = req.params;
-    const updateData = req.body; // Nhận toàn bộ object update
+    const updateData = req.body; 
     
     try {
-        // Kiểm tra quyền chỉnh sửa
         const currentUsername = await model.getUsername(userID);
         if (currentUsername !== username) {
             return res.status(403).json({ msg: "Unauthorized to edit this profile" });

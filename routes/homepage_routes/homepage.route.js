@@ -46,27 +46,70 @@ router.get("/searchs_users", async (req, res) => {
 
 // CRUD post
 router.post("/create_post", authorization, async (req, res) => {
+    console.log('Request body:', req.body);
     const userID = req.userId;
     const { content } = req.body;
     
     try {
+        // Validate content
+        if (!content || content.trim().length === 0) {
+            console.log('Content validation failed');
+            return res.status(400).json({ 
+                message: "Content cannot be empty" 
+            });
+        }
+
         const postData = {
             u_id: userID,
             p_creater: await userModel.getUsername(userID),
-            p_content: content,
+            p_content: content.trim(),
             p_create_at: new Date(),
             p_is_visible: true,
             p_image_url: "",
         };
+
+        console.log('Attempting to create post with data:', postData);
         const post = await model.createPost(postData);
-        await index.saveObject({
-            objectID: post.id,
-            ...postData
-        });
+        console.log('Created post:', post);
         
-        return res.status(200).json({ message: "Post created successfully" });
+        if (!post) {
+            console.log('Post creation failed - no post returned');
+            return res.status(500).json({ 
+                message: "Failed to create post" 
+            });
+        }
+
+        // Generate a unique ID 
+        const objectID = post.id || `post_${Date.now()}`;
+        console.log('Generated objectID:', objectID);
+
+        // Add to Algolia
+        try {
+            await index.saveObject({
+                objectID,
+                ...postData,
+                id: objectID
+            });
+            console.log('Saved to Algolia successfully');
+        } catch (algoliaError) {
+            console.error('Algolia save error:', algoliaError);
+            // Continue execution even if Algolia fails
+        }
+        
+        return res.status(200).json({ 
+            message: "Post created successfully",
+            post: {
+                id: objectID,
+                ...postData
+            }
+        });
+
     } catch (error) {
-        console.error(error);
+        console.error("Create post error:", error);
+        return res.status(500).json({ 
+            message: "Failed to create post",
+            error: error.message
+        });
     }
 });
 
